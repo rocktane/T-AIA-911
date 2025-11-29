@@ -1110,14 +1110,20 @@
             voiceLoadingText.textContent = 'Chargement du modele Whisper...';
 
             try {
+                // Check WebGPU support
+                const hasWebGPU = 'gpu' in navigator;
+
                 voiceState.transcriber = await pipeline(
                     'automatic-speech-recognition',
                     'Xenova/whisper-small',
                     {
                         progress_callback: showLoadingProgress,
-                        dtype: 'fp32'
+                        dtype: 'q8',
+                        device: hasWebGPU ? 'webgpu' : 'wasm'
                     }
                 );
+
+                console.log(`Whisper loaded with ${hasWebGPU ? 'WebGPU' : 'WASM'} backend`);
                 voiceLoadingEl.classList.remove('visible');
             } catch (error) {
                 console.error('Erreur chargement Whisper:', error);
