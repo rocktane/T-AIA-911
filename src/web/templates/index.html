@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Travel Order Resolver</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000'%3E%3Cpath d='M12 2C8 2 4 2.5 4 6v9.5c0 1.93 1.57 3.5 3.5 3.5L6 20.5v.5h2l2-2h4l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-4-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-6H6V6h5v5zm2 0V6h5v5h-5zm3.5 6c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
     <style>
         * {
             margin: 0;
@@ -142,11 +143,19 @@
             color: #2196f3;
         }
         .mic-btn.transcribing .mic-icon {
-            animation: spin 1s linear infinite;
+            display: none;
         }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        .mic-btn .transcribing-icon {
+            display: none;
+        }
+        .mic-btn.transcribing .transcribing-icon {
+            display: block;
+            fill: currentColor;
+            animation: transcribe-pulse 1.2s ease-in-out infinite;
+        }
+        @keyframes transcribe-pulse {
+            0%, 100% { opacity: 0.4; transform: scale(0.95); }
+            50% { opacity: 1; transform: scale(1.05); }
         }
 
         /* Voice loading indicator */
@@ -159,18 +168,25 @@
             border: 1px solid #000;
             padding: 15px 25px;
             z-index: 1000;
-            display: none;
             text-align: center;
+            min-width: 280px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
         }
         .voice-loading.visible {
-            display: block;
+            opacity: 1;
+            visibility: visible;
         }
         .voice-loading-text {
             font-size: 0.85rem;
             margin-bottom: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .voice-loading-bar {
-            width: 200px;
+            width: 100%;
             height: 4px;
             background: #e0e0e0;
             overflow: hidden;
@@ -507,6 +523,11 @@
                     <svg class="mic-icon" viewBox="0 0 24 24" width="20" height="20">
                         <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
                         <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                    <svg class="transcribing-icon" viewBox="0 0 24 24" width="20" height="20">
+                        <circle cx="6" cy="12" r="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <circle cx="18" cy="12" r="2"/>
                     </svg>
                 </button>
                 <input
@@ -1020,18 +1041,57 @@
             }
         }
 
+        // Throttled progress tracking
+        const progressState = {
+            lastUpdate: 0,
+            throttleMs: 150,
+            files: {},
+            totalFiles: 6, // Whisper-small has ~6 files
+            pendingUpdate: null
+        };
+
+        function updateProgressUI() {
+            // Calculate overall progress from all files
+            const fileProgresses = Object.values(progressState.files);
+            if (fileProgresses.length === 0) return;
+
+            const avgProgress = fileProgresses.reduce((a, b) => a + b, 0) / progressState.totalFiles;
+            const pct = Math.min(99, Math.round(avgProgress));
+
+            voiceLoadingFill.style.width = `${pct}%`;
+            voiceLoadingPercent.textContent = `${pct}%`;
+            voiceLoadingEl.classList.add('visible');
+        }
+
         function showLoadingProgress(progress) {
             if (progress.status === 'progress' && progress.progress !== undefined) {
-                const pct = Math.round(progress.progress);
-                voiceLoadingFill.style.width = `${pct}%`;
-                voiceLoadingPercent.textContent = `${pct}%`;
-                voiceLoadingEl.classList.add('visible');
-
+                // Track per-file progress
                 if (progress.file) {
-                    const fileName = progress.file.split('/').pop();
-                    voiceLoadingText.textContent = `Chargement: ${fileName}`;
+                    progressState.files[progress.file] = progress.progress;
                 }
+
+                // Throttle UI updates
+                const now = Date.now();
+                if (now - progressState.lastUpdate < progressState.throttleMs) {
+                    // Schedule update if not already scheduled
+                    if (!progressState.pendingUpdate) {
+                        progressState.pendingUpdate = setTimeout(() => {
+                            progressState.pendingUpdate = null;
+                            progressState.lastUpdate = Date.now();
+                            updateProgressUI();
+                        }, progressState.throttleMs);
+                    }
+                    return;
+                }
+
+                progressState.lastUpdate = now;
+                updateProgressUI();
             } else if (progress.status === 'done' || progress.status === 'ready') {
+                // Clear any pending update
+                if (progressState.pendingUpdate) {
+                    clearTimeout(progressState.pendingUpdate);
+                    progressState.pendingUpdate = null;
+                }
                 voiceLoadingEl.classList.remove('visible');
             }
         }
@@ -1039,14 +1099,20 @@
         async function initWhisper() {
             if (voiceState.transcriber) return;
 
+            // Reset progress tracking
+            progressState.files = {};
+            progressState.lastUpdate = 0;
+
             setVoiceStatus('loading');
             voiceLoadingEl.classList.add('visible');
+            voiceLoadingFill.style.width = '0%';
+            voiceLoadingPercent.textContent = '0%';
             voiceLoadingText.textContent = 'Chargement du modele Whisper...';
 
             try {
                 voiceState.transcriber = await pipeline(
                     'automatic-speech-recognition',
-                    'onnx-community/whisper-tiny',
+                    'Xenova/whisper-small',
                     {
                         progress_callback: showLoadingProgress,
                         dtype: 'fp32'
@@ -1089,30 +1155,33 @@
                     voiceState.audioChunks.push(e.data);
                 };
 
-                voiceState.mediaRecorder.onstop = async () => {
+                voiceState.mediaRecorder.onstop = () => {
                     setVoiceStatus('transcribing');
 
-                    try {
-                        const audioBlob = new Blob(voiceState.audioChunks, { type: 'audio/webm' });
-                        const audioData = await processAudioBlob(audioBlob);
+                    // Defer transcription to allow UI to update first
+                    setTimeout(async () => {
+                        try {
+                            const audioBlob = new Blob(voiceState.audioChunks, { type: 'audio/webm' });
+                            const audioData = await processAudioBlob(audioBlob);
 
-                        const result = await voiceState.transcriber(audioData, {
-                            language: 'french',
-                            task: 'transcribe'
-                        });
+                            const result = await voiceState.transcriber(audioData, {
+                                language: 'french',
+                                task: 'transcribe'
+                            });
 
-                        const text = result.text.trim();
-                        if (text) {
-                            sentenceInput.value = text;
-                            updateClearButton();
-                            startNewSearch();
+                            const text = result.text.trim();
+                            if (text) {
+                                sentenceInput.value = text;
+                                updateClearButton();
+                                startNewSearch();
+                            }
+                        } catch (error) {
+                            console.error('Erreur transcription:', error);
+                            micBtn.title = 'Erreur de transcription';
+                        } finally {
+                            setVoiceStatus('idle');
                         }
-                    } catch (error) {
-                        console.error('Erreur transcription:', error);
-                        micBtn.title = 'Erreur de transcription';
-                    } finally {
-                        setVoiceStatus('idle');
-                    }
+                    }, 50);
                 };
 
                 voiceState.mediaRecorder.start();
@@ -1174,6 +1243,9 @@
         }
 
         async function toggleRecording() {
+            // Remove focus to hide tooltip immediately
+            micBtn.blur();
+
             if (voiceState.status === 'loading' || voiceState.status === 'transcribing') {
                 return; // Ignore clicks during loading/transcribing
             }
