@@ -1,0 +1,76 @@
+# Phrases invalides (pas de demande de voyage)
+# Une ligne = une phrase
+# Lignes vides et commentaires (#) sont ignorés
+
+Bonjour
+Bonjour, comment allez-vous ?
+Bonsoir
+Salut
+Au revoir
+Merci
+Merci beaucoup
+S'il vous plaît
+Il fait beau aujourd'hui
+Il fait froid
+Il pleut
+Quel temps fait-il ?
+Quelle heure est-il ?
+C'est quoi ton nom ?
+Comment tu t'appelles ?
+Je m'appelle Jean
+Je voudrais un café
+Je voudrais un sandwich
+Où sont les toilettes ?
+Où est la sortie ?
+Je suis fatigué
+J'ai faim
+J'ai soif
+C'est combien ?
+Ça coûte combien ?
+Je ne comprends pas
+Pouvez-vous répéter ?
+Je suis perdu
+J'ai perdu mes bagages
+Le train est en retard
+Le train a du retard
+Y a-t-il du wifi ?
+Où est le guichet ?
+Quels sont les horaires ?
+J'attends mon train
+Mon train est parti
+La gare est fermée
+Je cherche la voie 3
+C'est quel quai ?
+Le TGV est rapide
+J'aime voyager en train
+Les trains sont souvent en retard
+La SNCF c'est bien
+Le train c'est écologique
+Je préfère l'avion
+Je préfère la voiture
+C'est loin ?
+C'est long le trajet ?
+Il y a des correspondances ?
+Faut-il réserver ?
+C'est complet ?
+Il reste des places ?
+Je voudrais annuler ma réservation
+Je voudrais modifier mon billet
+Mon billet n'est pas valide
+Je n'ai pas de billet
+Contrôle des billets
+Montrez vos billets
+Le contrôleur arrive
+Prochain arrêt
+Terminus
+Attention à la marche
+La porte va se fermer
+Ne pas monter
+Train supprimé
+Grève SNCF
+Travaux sur la ligne
+Incident technique
+Accident de personne
+Bonne journée
+Bon voyage
+À bientôt

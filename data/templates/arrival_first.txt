@@ -1,0 +1,119 @@
+# Templates où l'arrivée {A} apparaît avant le départ {D}
+# Une ligne = un template
+# Lignes vides et commentaires (#) sont ignorés
+
+# Structure classique: arrivée puis départ
+Je veux aller à {A} depuis {D}
+Je veux aller a {A} depuis {D}
+Je voudrais aller à {A} depuis {D}
+Je souhaite me rendre à {A} depuis {D}
+Je souhaite aller à {A} depuis {D}
+J'aimerais aller à {A} en partant de {D}
+J'aimerais me rendre à {A} depuis {D}
+Je dois aller à {A} depuis {D}
+Je dois me rendre à {A} depuis {D}
+Je vais à {A} depuis {D}
+Je me rends à {A} depuis {D}
+Je pars pour {A} depuis {D}
+
+# Avec "pour"
+Pour aller à {A} depuis {D}
+Pour {A} au départ de {D}
+Pour {A} depuis {D}
+Pour {A} en partant de {D}
+Pour me rendre à {A} depuis {D}
+
+# Avec "à" ou "vers"
+A {A} depuis {D}
+À {A} depuis {D}
+Vers {A} depuis {D}
+Vers {A} en partant de {D}
+Vers {A} au départ de {D}
+
+# Avec "direction"
+Direction {A} depuis {D}
+Direction {A} au départ de {D}
+Direction {A} en partant de {D}
+
+# Phrases avec "rejoindre"
+Rejoindre {A} depuis {D}
+Rejoindre {A} en partant de {D}
+Rejoindre {A} au départ de {D}
+Je veux rejoindre {A} depuis {D}
+Je souhaite rejoindre {A} depuis {D}
+Comment rejoindre {A} depuis {D} ?
+Comment rejoindre {A} en partant de {D} ?
+
+# Phrases avec "arriver"
+Arriver à {A} depuis {D}
+Arriver à {A} en partant de {D}
+Je veux arriver à {A} depuis {D}
+Comment arriver à {A} depuis {D} ?
+
+# Phrases avec "aller vers"
+Aller vers {A} depuis {D}
+Aller vers {A} en partant de {D}
+Je veux aller vers {A} depuis {D}
+Aller vers {A} au départ de {D}
+
+# Phrases longues
+A {A}, j'aimerais y aller depuis {D}
+Vers {A}, en partant de {D}
+A {A}, je veux m'y rendre depuis {D}
+Vers {A}, je pars de {D}
+Pour {A}, je pars de {D}
+Pour {A}, je quitte {D}
+
+# Questions
+Comment me rendre à {A} depuis {D} ?
+Comment aller à {A} depuis {D} ?
+Comment se rendre à {A} en partant de {D} ?
+Comment puis-je aller à {A} depuis {D} ?
+Quel train pour {A} depuis {D} ?
+Quel train vers {A} en partant de {D} ?
+Y a-t-il un train pour {A} depuis {D} ?
+Est-ce qu'il y a un train vers {A} depuis {D} ?
+A quelle heure part le train pour {A} depuis {D} ?
+
+# Formulations inversées explicites
+Destination {A} au départ de {D}
+Destination {A} depuis {D}
+Destination {A} en partant de {D}
+Arrivée à {A} au départ de {D}
+Arrivée à {A} depuis {D}
+Arrivée {A} départ {D}
+
+# Avec "me rendre"
+Me rendre à {A} depuis {D}
+Me rendre à {A} en partant de {D}
+Je veux me rendre à {A} depuis {D}
+Comment me rendre à {A} en partant de {D} ?
+
+# Avec "la ville de"
+Aller à la ville de {A} depuis {D}
+Je veux aller à la ville de {A} depuis {D}
+Rejoindre la ville de {A} en partant de {D}
+Me rendre dans la ville de {A} depuis {D}
+Aller dans la ville de {A} en partant de {D}
+
+# Avec "prendre le train"
+Prendre le train pour {A} depuis {D}
+Je veux prendre le train pour {A} en partant de {D}
+Prendre un train vers {A} depuis {D}
+
+# Avec "partir"
+Partir vers {A} depuis {D}
+Partir pour {A} en quittant {D}
+Je pars vers {A} depuis {D}
+
+# Billets et réservations
+Billet pour {A} depuis {D}
+Billet vers {A} au départ de {D}
+Un billet pour {A} depuis {D}
+Réserver pour {A} depuis {D}
+Réservation vers {A} au départ de {D}
+
+# Formats courts
+{A} depuis {D}
+{A} au départ de {D}
+{A} en partant de {D}

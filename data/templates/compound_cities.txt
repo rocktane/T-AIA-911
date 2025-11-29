@@ -1,0 +1,73 @@
+# Villes avec noms composés (cas difficiles pour le NER)
+# Ces villes peuvent être détectées partiellement
+# Une ligne = un nom de ville composé
+# Lignes vides et commentaires (#) sont ignorés
+
+# Villes avec "Saint" ou "Sainte"
+Saint-Étienne
+Saint-Malo
+Saint-Nazaire
+Saint-Brieuc
+Saint-Quentin
+Saint-Denis
+Saint-Pierre-des-Corps
+Saint-Jean-de-Luz
+Saint-Raphaël
+Saint-Tropez
+Saint-Gervais
+Saint-Germain-en-Laye
+Saint-Cloud
+Saint-Maur-des-Fossés
+Saint-Ouen
+Saint-Mandé
+Sainte-Maxime
+Saint-Cyr-sur-Mer
+
+# Villes avec "La" ou "Le"
+La Rochelle
+La Roche-sur-Yon
+La Baule
+La Ciotat
+Le Havre
+Le Mans
+Le Creusot
+La Défense
+Le Touquet
+La Ferté-Bernard
+La Teste-de-Buch
+Le Bouscat
+
+# Villes avec prépositions (sur, en, sous, lès)
+Aix-en-Provence
+Châlons-en-Champagne
+Boulogne-sur-Mer
+Chalon-sur-Saône
+Neuilly-sur-Seine
+Vitry-sur-Seine
+Nogent-sur-Marne
+Fontenay-sous-Bois
+Villers-lès-Nancy
+Thonon-les-Bains
+Évian-les-Bains
+
+# Villes avec tirets multiples
+Villeneuve-d'Ascq
+Villeneuve-Saint-Georges
+Villefranche-sur-Saône
+Mont-de-Marsan
+Bourg-en-Bresse
+Châteauneuf-du-Pape
+Neuilly-sur-Marne
+Conflans-Sainte-Honorine
+
+# Villes avec "Plage" ou autres suffixes
+Cannes-la-Bocca
+Menton-Garavan
+Cagnes-sur-Mer
+Juan-les-Pins
+Cap-d'Ail
+
+# Noms à espace (sans tiret mais composés)
+Clermont Ferrand
+Aix les Bains
+Vittel

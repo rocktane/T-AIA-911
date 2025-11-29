@@ -1,0 +1,21 @@
+# Phrases ambiguës (départ ou arrivée manquant)
+# {D} = départ, {A} = arrivée (un seul des deux est présent)
+# Une ligne = un template
+# Lignes vides et commentaires (#) sont ignorés
+
+Je veux aller à {A}
+Je voudrais aller à {A}
+Je veux aller vers {A}
+Direction {A}
+Pour {A}
+Depuis {D}
+Je pars de {D}
+Partant de {D}
+Au départ de {D}
+Un billet s'il vous plaît
+Je veux un billet
+Quel train ?
+Quels horaires ?
+Je cherche un train
+Prochain train
+Prochain départ

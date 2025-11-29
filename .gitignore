@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Cache
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Claude Code
+.claude/
+
+# Modeles entraines (volumineux, regenerables)
+models/
+
+# Datasets generes (regenerables via scripts/make_dataset.py)
+data/*.spacy
+data/dataset_*.csv
+
+# Rapports generes
+evaluation_report.json
+
+# Fichiers PDF du sujet (non necessaires au code)
+*.pdf
+
+# Notes de travail (optionnel - decommenter si necessaire)
+# ARCHITECTURE.md
+# GEO.md
+# NLP.md
+# PATHFINDING.md
+# TO-DO.md
+# DATASET.md
+# RAPPORT*.md

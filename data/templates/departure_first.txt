@@ -1,0 +1,216 @@
+# Templates où le départ {D} apparaît avant l'arrivée {A}
+# Une ligne = un template
+# Lignes vides et commentaires (#) sont ignorés
+
+# Structure classique: de X à Y
+Je veux aller de {D} à {A}
+Je veux aller de {D} a {A}
+Je voudrais aller de {D} à {A}
+Je souhaite aller de {D} à {A}
+J'aimerais aller de {D} à {A}
+Je dois aller de {D} à {A}
+J'ai besoin d'aller de {D} à {A}
+Il faut que j'aille de {D} à {A}
+
+# Avec "partir"
+Je pars de {D} pour aller à {A}
+Je pars de {D} direction {A}
+Je pars de {D} vers {A}
+Je pars de {D} pour {A}
+Partir de {D} pour {A}
+Partir de {D} vers {A}
+Partir de {D} direction {A}
+
+# Avec "depuis"
+Depuis {D}, je veux aller à {A}
+Depuis {D}, direction {A}
+Depuis {D} vers {A}
+Depuis {D} jusqu'à {A}
+Depuis {D} pour {A}
+Depuis {D} pour aller à {A}
+Depuis {D}, je me rends à {A}
+Depuis {D}, je souhaite aller à {A}
+
+# Avec "au départ de"
+Au départ de {D}, je vais à {A}
+Au départ de {D} vers {A}
+Au départ de {D} direction {A}
+Au départ de {D} pour {A}
+Au départ de {D}, destination {A}
+
+# Avec "en partance de"
+En partance de {D} vers {A}
+En partance de {D} pour {A}
+En partance de {D} direction {A}
+
+# Avec "partant de"
+Partant de {D}, je me rends à {A}
+Partant de {D} direction {A}
+Partant de {D} vers {A}
+Partant de {D} pour {A}
+En partant de {D} vers {A}
+En partant de {D} pour {A}
+En partant de {D} direction {A}
+En partant de {D}, je vais à {A}
+
+# Formats courts avec "de...à"
+De {D} à {A}
+De {D} vers {A}
+De {D} pour {A}
+De {D} jusqu'à {A}
+De {D} direction {A}
+
+# Formats très courts
+{D} - {A}
+{D} → {A}
+{D} vers {A}
+{D} direction {A}
+{D} {A}
+
+# Train/Trajet/Billet
+Train {D} {A}
+Train de {D} à {A}
+Train {D} vers {A}
+Trajet {D} - {A}
+Trajet {D} {A}
+Trajet de {D} à {A}
+Billet {D} {A}
+Billet de {D} à {A}
+Billet de {D} pour {A}
+Billet {D} vers {A}
+Un billet {D} {A} s'il vous plaît
+Un billet de {D} à {A}
+Un billet de {D} pour {A}
+
+# Chercher un train
+Je cherche un train de {D} à {A}
+Je cherche un train {D} {A}
+Je cherche un billet {D} {A}
+Je cherche un billet de {D} à {A}
+Je recherche un train de {D} vers {A}
+
+# Horaires
+Horaires {D} {A}
+Horaires de {D} à {A}
+Horaires des trains {D} {A}
+Horaires des trains de {D} à {A}
+Les horaires de {D} à {A}
+Quels sont les horaires de {D} à {A} ?
+
+# Questions avec "Y a-t-il"
+Y a-t-il un train de {D} à {A} ?
+Y a-t-il un train {D} {A} ?
+Y a-t-il des trains de {D} vers {A} ?
+Est-ce qu'il y a un train de {D} à {A} ?
+Est-ce qu'il y a des trains de {D} vers {A} ?
+
+# Questions avec "Quel"
+Quel train pour aller de {D} à {A} ?
+Quel est le prochain train de {D} à {A} ?
+Quel train de {D} vers {A} ?
+Quels trains vont de {D} à {A} ?
+
+# Questions avec "Comment"
+Comment aller de {D} à {A} ?
+Comment me rendre de {D} à {A} ?
+Comment se rendre de {D} à {A} ?
+Comment puis-je aller de {D} à {A} ?
+Comment faire pour aller de {D} à {A} ?
+
+# Questions avec "A quelle heure"
+A quelle heure part le train de {D} pour {A} ?
+A quelle heure y a-t-il des trains de {D} à {A} ?
+À quelle heure part le prochain train de {D} vers {A} ?
+
+# Prochain train
+Prochain train de {D} à {A}
+Prochain train {D} {A}
+Prochain départ {D} {A}
+Le prochain train de {D} vers {A}
+Prochain train de {D} direction {A}
+
+# Réservations
+Réserve moi une place de {D} à {A}
+Réserve un billet de {D} pour {A}
+Je réserve {D} {A}
+Reservation {D} {A}
+Réservation de {D} à {A}
+Je voudrais réserver de {D} à {A}
+
+# Départ/Arrivée explicite
+Je veux partir de {D} et aller à {A}
+Je pars de {D}, j'arrive à {A}
+Départ {D}, arrivée {A}
+Départ de {D}, arrivée à {A}
+Départ de {D} arrivée {A}
+Départ {D} destination {A}
+
+# Aller simple/retour
+Aller de {D} à {A}
+Aller {D} {A}
+Aller simple {D} {A}
+Aller retour {D} {A}
+Un aller simple de {D} à {A}
+Un aller retour de {D} à {A}
+Aller simple de {D} vers {A}
+
+# Me rendre / Me déplacer
+Je me rends de {D} à {A}
+Je me déplace de {D} à {A}
+Me rendre de {D} à {A}
+Se rendre de {D} à {A}
+
+# Voyage
+Voyage de {D} à {A}
+Voyage {D} {A}
+Je voyage de {D} à {A}
+Mon voyage de {D} à {A}
+Un voyage de {D} vers {A}
+
+# Prendre le train
+Je prends le train de {D} à {A}
+Je prends le train {D} {A}
+Je veux prendre le train de {D} à {A}
+Prendre le train de {D} vers {A}
+Prendre un train de {D} à {A}
+
+# Le train de
+Le train de {D} à {A}
+Le train {D} {A}
+Un train de {D} à {A}
+Un train de {D} vers {A}
+Les trains de {D} à {A}
+
+# Types de trains
+Train direct {D} {A}
+Train direct de {D} à {A}
+TGV {D} {A}
+TGV de {D} à {A}
+TER {D} {A}
+TER de {D} à {A}
+Intercités {D} {A}
+Intercités de {D} à {A}
+Ouigo {D} {A}
+Ouigo de {D} à {A}
+
+# Avec "la ville de"
+De la ville de {D} à {A}
+De la ville de {D} à la ville de {A}
+Je veux aller de la ville de {D} à {A}
+Depuis la ville de {D} vers {A}
+Partir de la ville de {D} pour {A}
+De {D} à la ville de {A}
+Je pars de la ville de {D} direction {A}
+
+# Avec "rejoindre"
+Rejoindre {A} de {D}
+Je veux rejoindre {A} de {D}
+Rejoindre {A} en partant de {D}
+De {D}, rejoindre {A}
+Depuis {D}, rejoindre {A}
+
+# Avec "quitter"
+Je quitte {D} pour {A}
+Je quitte {D} direction {A}
+Quitter {D} pour aller à {A}
+En quittant {D} vers {A}

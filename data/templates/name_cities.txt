@@ -1,0 +1,61 @@
+# Villes qui sont aussi des prénoms (cas difficiles pour le NER)
+# Une ligne = un nom
+# Lignes vides et commentaires (#) sont ignorés
+
+# Prénoms masculins
+Albert
+Victor
+Louis
+Charles
+Maurice
+Henri
+Georges
+Paul
+Pierre
+Jean
+Jacques
+François
+Martin
+Bernard
+Michel
+Robert
+Marcel
+Édouard
+Raymond
+René
+
+# Prénoms féminins
+Nancy
+Lourdes
+Nice
+Florence
+Laval
+Menton
+Castres
+Amélie
+Marguerite
+Eugénie
+Blanche
+Joséphine
+
+# Noms ambigus (peuvent être prénoms ou noms communs)
+Orange
+Tours
+Vichy
+Cognac
+Brest
+Rouen
+Troyes
+
+# Noms de famille qui sont aussi des villes
+Colmar
+Belfort
+Sedan
+Verdun
+Thionville
+Chartres
+Melun
+Meaux
+Creil
+Senlis
+Chantilly

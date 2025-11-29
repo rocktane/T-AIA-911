@@ -1,0 +1,58 @@
+# Templates avec des prénoms qui sont aussi des villes
+# {N} = prénom/ville (utilisé comme PRÉNOM, pas comme ville)
+# {D} = départ (ville)
+# {A} = arrivée (ville)
+# Une ligne = un template
+# Lignes vides et commentaires (#) sont ignorés
+
+# Avec "ami/amie"
+Avec mon ami {N}, je veux aller de {D} à {A}
+Avec mon amie {N}, je veux aller de {D} à {A}
+Mon ami {N} et moi allons de {D} à {A}
+Mon amie {N} et moi allons de {D} à {A}
+Je voyage avec {N} de {D} vers {A}
+Je pars avec {N} de {D} pour {A}
+{N} m'accompagne de {D} à {A}
+Je veux aller à {A} avec mon ami {N} depuis {D}
+Je veux aller à {A} avec mon amie {N} depuis {D}
+Avec {N}, on part de {D} vers {A}
+{N} et moi partons de {D} à {A}
+
+# Avec famille
+Ma sœur {N} et moi allons de {D} à {A}
+Mon frère {N} et moi allons de {D} à {A}
+Avec ma sœur {N}, de {D} à {A}
+Avec mon frère {N}, de {D} à {A}
+Ma fille {N} et moi partons de {D} vers {A}
+Mon fils {N} et moi partons de {D} vers {A}
+Avec mon oncle {N}, on va de {D} à {A}
+Avec ma tante {N}, on va de {D} à {A}
+Mon cousin {N} m'accompagne de {D} à {A}
+Ma cousine {N} m'accompagne de {D} à {A}
+
+# Avec collègues/connaissances
+Mon collègue {N} et moi voyageons de {D} à {A}
+Ma collègue {N} et moi voyageons de {D} à {A}
+Je pars avec mon collègue {N} de {D} vers {A}
+Avec {N} du bureau, on va de {D} à {A}
+Mon voisin {N} et moi allons de {D} à {A}
+Ma voisine {N} et moi allons de {D} à {A}
+
+# Formulations diverses
+J'accompagne {N} de {D} à {A}
+{N} veut que je l'accompagne de {D} à {A}
+C'est {N} qui conduit de {D} à {A}
+{N} me rejoint à {A} depuis {D}
+Je retrouve {N} à {A} en partant de {D}
+On se retrouve avec {N} à {A} depuis {D}
+
+# Phrases plus longues
+Demain, avec mon ami {N}, je dois aller de {D} à {A}
+Ce weekend, {N} et moi partons de {D} vers {A}
+La semaine prochaine, j'emmène {N} de {D} à {A}
+Pour les vacances, {N} et moi allons de {D} à {A}
+
+# Questions avec prénoms
+Est-ce que {N} peut nous rejoindre à {A} depuis {D} ?
+{N} vient-il avec nous de {D} à {A} ?
+Où est-ce que {N} nous attend à {A} depuis {D} ?
