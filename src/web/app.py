@@ -467,3 +467,9 @@ async def health():
         "resolver_loaded": resolver is not None,
         "pathfinder_loaded": pathfinder is not None,
     }
+
+
+@app.get("/.well-known/appspecific/com.chrome.devtools.json")
+async def chrome_devtools():
+    """Handle Chrome DevTools request to avoid 404 logs."""
+    return {}

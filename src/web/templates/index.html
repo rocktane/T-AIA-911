@@ -158,6 +158,49 @@
             50% { opacity: 1; transform: scale(1.05); }
         }
 
+        /* Wave animation for recording */
+        .wave-container {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            height: 24px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        .wave-container.visible {
+            display: flex;
+        }
+        .wave-bar {
+            width: 4px;
+            height: 8px;
+            background: #dc3545;
+            border-radius: 2px;
+            animation: wave 1s ease-in-out infinite;
+        }
+        .wave-bar:nth-child(1) { animation-delay: 0s; }
+        .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+        .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+        .wave-bar:nth-child(6) { animation-delay: 0.3s; }
+        .wave-bar:nth-child(7) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(8) { animation-delay: 0.1s; }
+        .wave-bar:nth-child(9) { animation-delay: 0s; }
+        @keyframes wave {
+            0%, 100% { height: 8px; opacity: 0.5; }
+            50% { height: 24px; opacity: 1; }
+        }
+        .input-wrapper.recording input {
+            color: transparent;
+        }
+        .input-wrapper.recording input::placeholder {
+            color: transparent;
+        }
+
         /* Voice loading indicator */
         .voice-loading {
             position: fixed;
@@ -519,7 +562,7 @@
 
         <div class="search-form">
             <div class="input-wrapper" id="input-wrapper">
-                <button type="button" class="mic-btn" id="mic-btn" title="Reconnaissance vocale">
+                <button type="button" class="mic-btn loading" id="mic-btn" title="Chargement du modele..." disabled>
                     <svg class="mic-icon" viewBox="0 0 24 24" width="20" height="20">
                         <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
                         <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
@@ -533,11 +576,22 @@
                 <input
                     type="text"
                     id="sentence-input"
-                    placeholder="Je veux aller de Paris a Lyon"
+                    placeholder="Chargement de la reconnaissance vocale..."
                     autocomplete="off"
                     autofocus
                 >
                 <button type="button" class="clear-btn" id="clear-btn" title="Effacer">&times;</button>
+                <div class="wave-container" id="wave-container">
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                </div>
             </div>
         </div>
 
@@ -601,10 +655,11 @@
         const inputWrapper = document.getElementById('input-wrapper');
         const clearBtn = document.getElementById('clear-btn');
         const micBtn = document.getElementById('mic-btn');
+        const waveContainer = document.getElementById('wave-container');
 
         // Clear button functionality
         function updateClearButton() {
-            if (sentenceInput.value.trim()) {
+            if (sentenceInput.value.length > 0) {
                 inputWrapper.classList.add('has-value');
             } else {
                 inputWrapper.classList.remove('has-value');
@@ -960,12 +1015,157 @@
             runSearch(model);
         }
 
-        // Input handler (Enter key)
+        // Track spacebar state for voice recording
+        let spacebarHeld = false;
+
+        // Input handler (Enter key + Spacebar for voice)
         function handleInputKeydown(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 startNewSearch();
+                return;
             }
+
+            // Spacebar when input is empty = voice recording trigger
+            if (e.key === ' ' && sentenceInput.value.length === 0) {
+                e.preventDefault(); // Always prevent space from being typed
+
+                if (spacebarHeld) return; // Already handling (key repeat)
+
+                if (!checkVoiceSupport()) return;
+
+                spacebarHeld = true;
+
+                // Show appropriate message based on status
+                if (voiceState.status === 'loading') {
+                    sentenceInput.placeholder = 'Chargement du modele, veuillez patienter...';
+                    return;
+                }
+
+                if (voiceState.status === 'transcribing') {
+                    sentenceInput.placeholder = 'Transcription en cours, veuillez patienter...';
+                    return;
+                }
+
+                if (voiceState.status === 'idle') {
+                    prepareRecording();
+                }
+            }
+        }
+
+        function handleInputKeyup(e) {
+            // Release spacebar = stop recording and start transcription
+            if (e.key === ' ' && spacebarHeld) {
+                spacebarHeld = false;
+                if (voiceState.status === 'recording') {
+                    stopRecording();
+                } else {
+                    // Reset placeholder if we were waiting
+                    setVoiceStatus(voiceState.status);
+                }
+            }
+        }
+
+        // Prepare recording: start if model is ready
+        async function prepareRecording() {
+            // Model not ready yet
+            if (!voiceState.transcriber) {
+                return;
+            }
+
+            try {
+                // Only start recording if spacebar is still held
+                if (spacebarHeld) {
+                    await actuallyStartRecording();
+                }
+            } catch (error) {
+                console.error('Erreur preparation enregistrement:', error);
+                setVoiceStatus('idle');
+            }
+        }
+
+        // Actually start the microphone recording
+        async function actuallyStartRecording() {
+            try {
+                setVoiceStatus('recording');
+                voiceState.audioChunks = [];
+
+                voiceState.stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        channelCount: 1,
+                        sampleRate: 16000,
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    }
+                });
+
+                voiceState.mediaRecorder = new MediaRecorder(voiceState.stream, {
+                    mimeType: 'audio/webm;codecs=opus'
+                });
+
+                voiceState.mediaRecorder.ondataavailable = (e) => {
+                    voiceState.audioChunks.push(e.data);
+                };
+
+                voiceState.mediaRecorder.onstop = () => {
+                    transcribeAudio();
+                };
+
+                voiceState.mediaRecorder.start();
+
+            } catch (error) {
+                console.error('Erreur enregistrement:', error);
+                if (error.name === 'NotAllowedError') {
+                    micBtn.title = 'Acces microphone refuse';
+                } else if (error.name === 'NotFoundError') {
+                    micBtn.title = 'Aucun microphone detecte';
+                } else {
+                    micBtn.title = 'Erreur: ' + error.message;
+                }
+                setVoiceStatus('idle');
+            }
+        }
+
+        // Transcribe recorded audio
+        async function transcribeAudio() {
+            setVoiceStatus('transcribing');
+
+            try {
+                const audioBlob = new Blob(voiceState.audioChunks, { type: 'audio/webm' });
+                const audioData = await processAudioBlob(audioBlob);
+
+                const result = await voiceState.transcriber(audioData, {
+                    language: 'french',
+                    task: 'transcribe'
+                });
+
+                const text = result.text.trim();
+                if (text) {
+                    sentenceInput.value = text;
+                    updateClearButton();
+                    startNewSearch();
+                }
+            } catch (error) {
+                console.error('Erreur transcription:', error);
+                micBtn.title = 'Erreur de transcription';
+            } finally {
+                setVoiceStatus('idle');
+            }
+        }
+
+        // Handle window blur - stop recording if spacebar was held
+        function handleWindowBlur() {
+            if (spacebarHeld) {
+                spacebarHeld = false;
+                if (voiceState.status === 'recording') {
+                    stopRecording();
+                }
+            }
+        }
+
+        // Keep focus on input at all times
+        function keepFocusOnInput() {
+            sentenceInput.focus();
         }
 
         // Start a new search (clears cache and updates URL)
@@ -1034,10 +1234,25 @@
             };
             micBtn.title = titles[status];
 
+            // Handle mic button disabled state
+            micBtn.disabled = (status === 'loading');
+
+            // Handle wave animation and input states
             if (status === 'recording') {
-                sentenceInput.placeholder = 'Parlez maintenant...';
+                inputWrapper.classList.add('recording');
+                waveContainer.classList.add('visible');
+                sentenceInput.placeholder = '';
             } else {
-                sentenceInput.placeholder = 'Je veux aller de Paris a Lyon';
+                inputWrapper.classList.remove('recording');
+                waveContainer.classList.remove('visible');
+
+                if (status === 'loading') {
+                    sentenceInput.placeholder = 'Chargement de la reconnaissance vocale...';
+                } else if (status === 'transcribing') {
+                    sentenceInput.placeholder = 'Transcription en cours...';
+                } else {
+                    sentenceInput.placeholder = 'Je veux aller de Paris a Lyon (maintenir espace = micro)';
+                }
             }
         }
 
@@ -1118,90 +1333,21 @@
                     'Xenova/whisper-small',
                     {
                         progress_callback: showLoadingProgress,
-                        dtype: 'q8',
+                        dtype: 'fp32',
                         device: hasWebGPU ? 'webgpu' : 'wasm'
                     }
                 );
 
                 console.log(`Whisper loaded with ${hasWebGPU ? 'WebGPU' : 'WASM'} backend`);
                 voiceLoadingEl.classList.remove('visible');
+                setVoiceStatus('idle');
             } catch (error) {
                 console.error('Erreur chargement Whisper:', error);
                 voiceLoadingEl.classList.remove('visible');
                 micBtn.title = 'Erreur de chargement du modele';
+                micBtn.disabled = true;
                 setVoiceStatus('idle');
                 throw error;
-            }
-        }
-
-        async function startRecording() {
-            try {
-                // Lazy load Whisper on first use
-                if (!voiceState.transcriber) {
-                    await initWhisper();
-                }
-
-                setVoiceStatus('recording');
-                voiceState.audioChunks = [];
-
-                voiceState.stream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        channelCount: 1,
-                        sampleRate: 16000,
-                        echoCancellation: true,
-                        noiseSuppression: true
-                    }
-                });
-
-                voiceState.mediaRecorder = new MediaRecorder(voiceState.stream, {
-                    mimeType: 'audio/webm;codecs=opus'
-                });
-
-                voiceState.mediaRecorder.ondataavailable = (e) => {
-                    voiceState.audioChunks.push(e.data);
-                };
-
-                voiceState.mediaRecorder.onstop = () => {
-                    setVoiceStatus('transcribing');
-
-                    // Defer transcription to allow UI to update first
-                    setTimeout(async () => {
-                        try {
-                            const audioBlob = new Blob(voiceState.audioChunks, { type: 'audio/webm' });
-                            const audioData = await processAudioBlob(audioBlob);
-
-                            const result = await voiceState.transcriber(audioData, {
-                                language: 'french',
-                                task: 'transcribe'
-                            });
-
-                            const text = result.text.trim();
-                            if (text) {
-                                sentenceInput.value = text;
-                                updateClearButton();
-                                startNewSearch();
-                            }
-                        } catch (error) {
-                            console.error('Erreur transcription:', error);
-                            micBtn.title = 'Erreur de transcription';
-                        } finally {
-                            setVoiceStatus('idle');
-                        }
-                    }, 50);
-                };
-
-                voiceState.mediaRecorder.start();
-
-            } catch (error) {
-                console.error('Erreur enregistrement:', error);
-                if (error.name === 'NotAllowedError') {
-                    micBtn.title = 'Acces microphone refuse';
-                } else if (error.name === 'NotFoundError') {
-                    micBtn.title = 'Aucun microphone detecte';
-                } else {
-                    micBtn.title = 'Erreur: ' + error.message;
-                }
-                setVoiceStatus('idle');
             }
         }
 
@@ -1256,10 +1402,19 @@
                 return; // Ignore clicks during loading/transcribing
             }
 
+            if (!voiceState.transcriber) {
+                return; // Model not loaded yet
+            }
+
             if (voiceState.status === 'recording') {
                 stopRecording();
             } else {
-                await startRecording();
+                try {
+                    await actuallyStartRecording();
+                } catch (error) {
+                    console.error('Erreur demarrage enregistrement:', error);
+                    setVoiceStatus('idle');
+                }
             }
         }
 
@@ -1278,15 +1433,31 @@
             // Set up event listeners
             tabs.forEach(tab => tab.addEventListener('click', handleTabClick));
             sentenceInput.addEventListener('keydown', handleInputKeydown);
+            sentenceInput.addEventListener('keyup', handleInputKeyup);
 
             // Initialize voice recognition
             if (checkVoiceSupport()) {
                 micBtn.addEventListener('click', toggleRecording);
+                // Load Whisper model at startup
+                initWhisper().catch(err => {
+                    console.error('Failed to load Whisper:', err);
+                });
             }
 
             // Initialize slider position
             setTimeout(updateSlider, 0);
             window.addEventListener('resize', updateSlider);
+            window.addEventListener('blur', handleWindowBlur);
+
+            // Keep focus on input at all times
+            document.addEventListener('mousedown', (e) => {
+                // Allow default only for the input itself
+                if (e.target !== sentenceInput) {
+                    e.preventDefault();
+                    keepFocusOnInput();
+                }
+            });
+            sentenceInput.addEventListener('blur', keepFocusOnInput);
 
             // Ensure focus on input (some browsers ignore autofocus)
             sentenceInput.focus();
