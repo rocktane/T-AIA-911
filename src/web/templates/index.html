@@ -177,9 +177,14 @@
         .wave-bar {
             width: 4px;
             height: 8px;
-            background: #dc3545;
+            background: #000;
             border-radius: 2px;
             animation: wave 1s ease-in-out infinite;
+        }
+        /* Hide mic button during recording */
+        .input-wrapper.recording .mic-btn {
+            opacity: 0;
+            pointer-events: none;
         }
         .wave-bar:nth-child(1) { animation-delay: 0s; }
         .wave-bar:nth-child(2) { animation-delay: 0.1s; }
@@ -200,22 +205,39 @@
         .input-wrapper.recording input::placeholder {
             color: transparent;
         }
+        /* Hide cursor during transcription */
+        .input-wrapper.transcribing input {
+            caret-color: transparent;
+        }
 
-        /* Voice loading indicator */
-        .voice-loading {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #fff;
-            border: 1px solid #000;
-            padding: 15px 25px;
-            z-index: 1000;
-            text-align: center;
-            min-width: 280px;
+        /* Smooth transition for main content */
+        .search-form,
+        .tabs-container {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        /* Hide main content during initial loading */
+        body.model-loading .search-form,
+        body.model-loading .tabs-container {
             opacity: 0;
             visibility: hidden;
-            transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+
+        /* Voice loading indicator - centered during initial load */
+        .voice-loading {
+            position: fixed;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            border: 1px solid #000;
+            padding: 20px 35px;
+            z-index: 1000;
+            text-align: center;
+            min-width: 320px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease, top 0.3s ease;
+            top: 50%;
         }
         .voice-loading.visible {
             opacity: 1;
@@ -556,7 +578,7 @@
         }
     </style>
 </head>
-<body class="centered">
+<body class="centered model-loading">
     <div class="container">
         <h1>TRAVEL ORDER RESOLVER</h1>
 
@@ -1238,21 +1260,20 @@
             micBtn.disabled = (status === 'loading');
 
             // Handle wave animation and input states
+            inputWrapper.classList.remove('recording', 'transcribing');
+            waveContainer.classList.remove('visible');
+
             if (status === 'recording') {
                 inputWrapper.classList.add('recording');
                 waveContainer.classList.add('visible');
                 sentenceInput.placeholder = '';
+            } else if (status === 'transcribing') {
+                inputWrapper.classList.add('transcribing');
+                sentenceInput.placeholder = 'Transcription en cours...';
+            } else if (status === 'loading') {
+                sentenceInput.placeholder = 'Chargement de la reconnaissance vocale...';
             } else {
-                inputWrapper.classList.remove('recording');
-                waveContainer.classList.remove('visible');
-
-                if (status === 'loading') {
-                    sentenceInput.placeholder = 'Chargement de la reconnaissance vocale...';
-                } else if (status === 'transcribing') {
-                    sentenceInput.placeholder = 'Transcription en cours...';
-                } else {
-                    sentenceInput.placeholder = 'Je veux aller de Paris a Lyon (maintenir espace = micro)';
-                }
+                sentenceInput.placeholder = 'Je veux aller de Paris a Lyon (maintenir espace = micro)';
             }
         }
 
@@ -1262,10 +1283,14 @@
             throttleMs: 150,
             files: {},
             totalFiles: 6, // Whisper-small has ~6 files
-            pendingUpdate: null
+            pendingUpdate: null,
+            isComplete: false // Flag to prevent showing after complete
         };
 
         function updateProgressUI() {
+            // Don't update if loading is already complete
+            if (progressState.isComplete) return;
+
             // Calculate overall progress from all files
             const fileProgresses = Object.values(progressState.files);
             if (fileProgresses.length === 0) return;
@@ -1278,7 +1303,19 @@
             voiceLoadingEl.classList.add('visible');
         }
 
+        function hideLoadingUI() {
+            progressState.isComplete = true;
+            if (progressState.pendingUpdate) {
+                clearTimeout(progressState.pendingUpdate);
+                progressState.pendingUpdate = null;
+            }
+            voiceLoadingEl.classList.remove('visible');
+        }
+
         function showLoadingProgress(progress) {
+            // Ignore callbacks after loading is complete
+            if (progressState.isComplete) return;
+
             if (progress.status === 'progress' && progress.progress !== undefined) {
                 // Track per-file progress
                 if (progress.file) {
@@ -1301,14 +1338,15 @@
 
                 progressState.lastUpdate = now;
                 updateProgressUI();
-            } else if (progress.status === 'done' || progress.status === 'ready') {
-                // Clear any pending update
-                if (progressState.pendingUpdate) {
-                    clearTimeout(progressState.pendingUpdate);
-                    progressState.pendingUpdate = null;
+            } else if (progress.status === 'done') {
+                // File download complete - show 100% for this file but keep loading visible
+                // Model initialization continues after downloads
+                if (progress.file) {
+                    progressState.files[progress.file] = 100;
+                    updateProgressUI();
                 }
-                voiceLoadingEl.classList.remove('visible');
             }
+            // Note: Don't hide on 'ready' - wait for pipeline() to fully resolve
         }
 
         async function initWhisper() {
@@ -1317,12 +1355,16 @@
             // Reset progress tracking
             progressState.files = {};
             progressState.lastUpdate = 0;
+            progressState.isComplete = false;
 
             setVoiceStatus('loading');
             voiceLoadingEl.classList.add('visible');
             voiceLoadingFill.style.width = '0%';
             voiceLoadingPercent.textContent = '0%';
-            voiceLoadingText.textContent = 'Chargement du modele Whisper...';
+            voiceLoadingText.textContent = 'Chargement du site...';
+
+            // Force browser to paint before starting heavy work
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
             try {
                 // Check WebGPU support
@@ -1339,14 +1381,20 @@
                 );
 
                 console.log(`Whisper loaded with ${hasWebGPU ? 'WebGPU' : 'WASM'} backend`);
-                voiceLoadingEl.classList.remove('visible');
+                hideLoadingUI();
+                document.body.classList.remove('model-loading');
                 setVoiceStatus('idle');
+                // Focus input after loading
+                setTimeout(() => sentenceInput.focus(), 100);
             } catch (error) {
                 console.error('Erreur chargement Whisper:', error);
-                voiceLoadingEl.classList.remove('visible');
+                hideLoadingUI();
+                document.body.classList.remove('model-loading');
                 micBtn.title = 'Erreur de chargement du modele';
                 micBtn.disabled = true;
                 setVoiceStatus('idle');
+                // Focus input even on error
+                setTimeout(() => sentenceInput.focus(), 100);
                 throw error;
             }
         }
