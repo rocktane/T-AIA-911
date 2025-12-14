@@ -268,6 +268,68 @@ class PathFinder:
 
         return best_result
 
+    def find_best_path_multi_with_waypoints(
+        self,
+        departures: list[str],
+        destinations: list[str],
+        via_stations_list: list[list[str]],
+    ) -> PathResult:
+        """
+        Find the best path among all combinations of departure, waypoint, and destination stations.
+
+        For cities with multiple stations, this method evaluates all possible combinations
+        to find the optimal route passing through specified waypoints.
+
+        Args:
+            departures: List of possible departure station names
+            destinations: List of possible destination station names
+            via_stations_list: List of lists, where each inner list contains
+                              possible stations for a waypoint city
+
+        Returns:
+            Best PathResult among all combinations
+        """
+        from itertools import product
+
+        # If no waypoints, delegate to existing method
+        if not via_stations_list:
+            return self.find_best_path_multi(departures, destinations)
+
+        best_result = PathResult(path=[], total_distance=0.0, found=False)
+        best_score = float("inf")
+
+        # Filter to only valid stations
+        valid_departures = [d for d in departures if d in self.graph]
+        valid_destinations = [d for d in destinations if d in self.graph]
+        valid_via_lists = [
+            [s for s in stations if s in self.graph]
+            for stations in via_stations_list
+        ]
+
+        # Skip if any required station list is empty
+        if not valid_departures or not valid_destinations:
+            return best_result
+        if any(len(v) == 0 for v in valid_via_lists):
+            return best_result
+
+        # Try all combinations
+        for dep in valid_departures:
+            for dest in valid_destinations:
+                for waypoint_combo in product(*valid_via_lists):
+                    result = self.find_path_with_waypoints(
+                        dep, dest, list(waypoint_combo)
+                    )
+                    if result.found:
+                        # Score by duration + connection penalty
+                        duration = result.total_duration or result.total_distance
+                        score = duration + (result.num_connections - 1) * 10
+
+                        if score < best_score:
+                            best_score = score
+                            best_result = result
+
+        return best_result
+
 
 def format_duration(minutes: float | None) -> str:
     """Format duration in minutes to human readable string."""

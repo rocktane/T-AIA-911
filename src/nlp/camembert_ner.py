@@ -1,12 +1,12 @@
-"""CamemBERT-based NER for extracting departure and arrival cities.
+"""CamemBERT-based NER for extracting departure, arrival, and via cities.
 
 This module implements fine-tuning of CamemBERT for Named Entity Recognition
-specifically for travel-related entities (DEPART and ARRIVEE).
+specifically for travel-related entities (DEPART, ARRIVEE, and VIA).
 
 Architecture:
 - Base model: camembert-base from HuggingFace
 - Task: Token classification (NER)
-- Labels: O, B-DEPART, I-DEPART, B-ARRIVEE, I-ARRIVEE
+- Labels: O, B-DEPART, I-DEPART, B-ARRIVEE, I-ARRIVEE, B-VIA, I-VIA
 
 Usage:
     # Training
@@ -36,7 +36,7 @@ from transformers import (
     TrainingArguments,
 )
 
-from .baseline import NERResult
+from .baseline import NERResult, ViaPoint
 from .preprocessing import normalize_city_name
 
 
@@ -47,6 +47,8 @@ LABEL2ID = {
     "I-DEPART": 2,
     "B-ARRIVEE": 3,
     "I-ARRIVEE": 4,
+    "B-VIA": 5,
+    "I-VIA": 6,
 }
 ID2LABEL = {v: k for k, v in LABEL2ID.items()}
 NUM_LABELS = len(LABEL2ID)
@@ -434,13 +436,13 @@ class CamemBERTNER:
 
     def extract(self, sentence: str) -> NERResult:
         """
-        Extract departure and arrival from a sentence.
+        Extract departure, arrival, and VIA waypoints from a sentence.
 
         Args:
             sentence: Input sentence
 
         Returns:
-            NERResult with departure, arrival, and validity
+            NERResult with departure, arrival, vias, and validity
         """
         # Tokenize
         encoding = self.tokenizer(
@@ -467,6 +469,7 @@ class CamemBERTNER:
         # Extract entities from predictions
         departure = None
         arrival = None
+        vias = []
         dep_start, dep_end = None, None
         arr_start, arr_end = None, None
         dep_confidence, arr_confidence = 0.0, 0.0
@@ -475,6 +478,34 @@ class CamemBERTNER:
         current_start = None
         current_tokens = []
         current_probs = []
+
+        def save_entity(entity_type, entity_text, start, end, avg_prob):
+            """Helper to save an extracted entity."""
+            nonlocal departure, arrival, dep_start, dep_end, arr_start, arr_end
+            nonlocal dep_confidence, arr_confidence, vias
+
+            validated = self._validate_city(entity_text)
+            if not validated:
+                return
+
+            if entity_type == "DEPART":
+                departure = validated
+                dep_start = start
+                dep_end = end
+                dep_confidence = avg_prob
+            elif entity_type == "ARRIVEE":
+                arrival = validated
+                arr_start = start
+                arr_end = end
+                arr_confidence = avg_prob
+            elif entity_type == "VIA":
+                vias.append(ViaPoint(
+                    city=validated,
+                    start=start,
+                    end=end,
+                    confidence=avg_prob,
+                    order=start,
+                ))
 
         for i, (pred, offset, prob) in enumerate(zip(predictions, offset_mapping, probs)):
             if offset == [0, 0]:
@@ -485,23 +516,10 @@ class CamemBERTNER:
             if label.startswith("B-"):
                 # Save previous entity
                 if current_entity and current_tokens:
-                    entity_text = self._reconstruct_entity(sentence, current_start, offset_mapping[i-1][1] if i > 0 else offset[1])
+                    prev_end = offset_mapping[i-1][1] if i > 0 else offset[1]
+                    entity_text = self._reconstruct_entity(sentence, current_start, prev_end)
                     avg_prob = np.mean(current_probs)
-
-                    if current_entity == "DEPART":
-                        validated = self._validate_city(entity_text)
-                        if validated:
-                            departure = validated
-                            dep_start = current_start
-                            dep_end = offset_mapping[i-1][1] if i > 0 else offset[1]
-                            dep_confidence = avg_prob
-                    elif current_entity == "ARRIVEE":
-                        validated = self._validate_city(entity_text)
-                        if validated:
-                            arrival = validated
-                            arr_start = current_start
-                            arr_end = offset_mapping[i-1][1] if i > 0 else offset[1]
-                            arr_confidence = avg_prob
+                    save_entity(current_entity, entity_text, current_start, prev_end, avg_prob)
 
                 # Start new entity
                 current_entity = label[2:]  # Remove "B-"
@@ -518,27 +536,10 @@ class CamemBERTNER:
                 # End of entity
                 if current_entity and current_tokens:
                     last_token_idx = current_tokens[-1]
-                    entity_text = self._reconstruct_entity(
-                        sentence,
-                        current_start,
-                        offset_mapping[last_token_idx][1]
-                    )
+                    end_pos = offset_mapping[last_token_idx][1]
+                    entity_text = self._reconstruct_entity(sentence, current_start, end_pos)
                     avg_prob = np.mean(current_probs)
-
-                    if current_entity == "DEPART":
-                        validated = self._validate_city(entity_text)
-                        if validated:
-                            departure = validated
-                            dep_start = current_start
-                            dep_end = offset_mapping[last_token_idx][1]
-                            dep_confidence = avg_prob
-                    elif current_entity == "ARRIVEE":
-                        validated = self._validate_city(entity_text)
-                        if validated:
-                            arrival = validated
-                            arr_start = current_start
-                            arr_end = offset_mapping[last_token_idx][1]
-                            arr_confidence = avg_prob
+                    save_entity(current_entity, entity_text, current_start, end_pos, avg_prob)
 
                 current_entity = None
                 current_start = None
@@ -548,34 +549,23 @@ class CamemBERTNER:
         # Handle last entity
         if current_entity and current_tokens:
             last_token_idx = current_tokens[-1]
-            entity_text = self._reconstruct_entity(
-                sentence,
-                current_start,
-                offset_mapping[last_token_idx][1]
-            )
+            end_pos = offset_mapping[last_token_idx][1]
+            entity_text = self._reconstruct_entity(sentence, current_start, end_pos)
             avg_prob = np.mean(current_probs)
-
-            if current_entity == "DEPART":
-                validated = self._validate_city(entity_text)
-                if validated:
-                    departure = validated
-                    dep_start = current_start
-                    dep_end = offset_mapping[last_token_idx][1]
-                    dep_confidence = avg_prob
-            elif current_entity == "ARRIVEE":
-                validated = self._validate_city(entity_text)
-                if validated:
-                    arrival = validated
-                    arr_start = current_start
-                    arr_end = offset_mapping[last_token_idx][1]
-                    arr_confidence = avg_prob
+            save_entity(current_entity, entity_text, current_start, end_pos, avg_prob)
 
         is_valid = departure is not None and arrival is not None
+
+        # Sort VIAs by position and assign order indices
+        vias.sort(key=lambda v: v.start if v.start else 0)
+        for i, v in enumerate(vias):
+            v.order = i
 
         return NERResult(
             departure=departure,
             arrival=arrival,
             is_valid=is_valid,
+            vias=vias,
             departure_start=dep_start,
             departure_end=dep_end,
             arrival_start=arr_start,

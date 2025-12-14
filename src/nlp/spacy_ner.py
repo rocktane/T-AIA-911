@@ -6,7 +6,7 @@ from pathlib import Path
 import spacy
 from spacy.language import Language
 
-from .baseline import NERResult
+from .baseline import NERResult, ViaPoint
 from .preprocessing import correct_city_typo, normalize_city_name
 
 
@@ -283,9 +283,10 @@ class SpacyNER:
         return None, None
 
     def _extract_with_custom_model(self, doc) -> NERResult:
-        """Extract using custom DEPART/ARRIVEE labels."""
+        """Extract using custom DEPART/ARRIVEE/VIA labels."""
         departure = None
         arrival = None
+        vias = []
         dep_start, dep_end = None, None
         arr_start, arr_end = None, None
         dep_confidence, arr_confidence = 0.0, 0.0
@@ -326,6 +327,16 @@ class SpacyNER:
                         arr_end = ent.end_char
                         dep_confidence = 0.9
                         arr_confidence = 0.9
+            elif ent.label_ == "VIA":
+                validated = self._validate_city(ent.text)
+                if validated:
+                    vias.append(ViaPoint(
+                        city=validated,
+                        start=ent.start_char,
+                        end=ent.end_char,
+                        confidence=1.0,
+                        order=ent.start_char,
+                    ))
 
         # Fallback for simple patterns like "Paris - Marseille" or "Paris Marseille"
         # when no DEPART/ARRIVEE labels are detected
@@ -391,10 +402,17 @@ class SpacyNER:
                     arr_confidence = locations[1].get("confidence", 0.6)
 
         is_valid = departure is not None and arrival is not None
+
+        # Sort VIAs by position and assign order indices
+        vias.sort(key=lambda v: v.start if v.start else 0)
+        for i, v in enumerate(vias):
+            v.order = i
+
         return NERResult(
             departure=departure,
             arrival=arrival,
             is_valid=is_valid,
+            vias=vias,
             departure_start=dep_start,
             departure_end=dep_end,
             arrival_start=arr_start,

@@ -174,6 +174,25 @@ class SegmentDisplay(BaseModel):
     train_type: str
 
 
+class ViaDetectionInfo(BaseModel):
+    """Detection info for a single VIA city."""
+
+    raw_text: str
+    matched_city: str | None = None
+    start_pos: int | None = None
+    end_pos: int | None = None
+    confidence: float = 0.0
+    match_score: float = 1.0
+    is_fuzzy: bool = False
+
+
+class ViaStationInfo(BaseModel):
+    """Info about a via station in the route."""
+
+    city: str
+    station: str
+
+
 class QueryResponse(BaseModel):
     """Response model for API."""
 
@@ -183,6 +202,11 @@ class QueryResponse(BaseModel):
     departure_station: str | None = None
     arrival: str | None = None
     arrival_station: str | None = None
+    # VIA support
+    via_cities: list[str] | None = None
+    via_stations: list[ViaStationInfo] | None = None
+    via_detections: list[ViaDetectionInfo] | None = None
+    # Route info
     route: list[str] | None = None
     distance_km: float | None = None
     duration_min: float | None = None  # Total duration in minutes
@@ -278,13 +302,14 @@ def create_highlighted_sentence(
     dep_end: int | None,
     arr_start: int | None,
     arr_end: int | None,
+    via_positions: list[tuple[int, int]] | None = None,
 ) -> str:
     """
-    Create HTML with highlighted departure (green) and arrival (red).
+    Create HTML with highlighted departure (green), arrival (red), and VIA (orange).
 
     Handles overlapping or adjacent spans by processing from end to start.
     """
-    if dep_start is None and arr_start is None:
+    if dep_start is None and arr_start is None and not via_positions:
         return sentence
 
     # Collect spans with their types
@@ -294,12 +319,22 @@ def create_highlighted_sentence(
     if arr_start is not None and arr_end is not None:
         spans.append((arr_start, arr_end, "arrival"))
 
+    # Add VIA spans
+    if via_positions:
+        for i, (start, end) in enumerate(via_positions):
+            spans.append((start, end, f"via-{i}"))
+
     # Sort by start position descending (process from end to avoid offset issues)
     spans.sort(key=lambda x: x[0], reverse=True)
 
     result = sentence
     for start, end, span_type in spans:
-        css_class = "highlight-departure" if span_type == "departure" else "highlight-arrival"
+        if span_type == "departure":
+            css_class = "highlight-departure"
+        elif span_type == "arrival":
+            css_class = "highlight-arrival"
+        else:  # VIA
+            css_class = "highlight-via"
         highlighted = f'<span class="{css_class}">{result[start:end]}</span>'
         result = result[:start] + highlighted + result[end:]
 
@@ -330,6 +365,7 @@ def process_sentence(sentence: str, model: str = "spacy") -> QueryResponse:
         return QueryResponse(is_valid=False, model_name=model_name, error="Impossible de détecter un trajet valide. Veuillez préciser une ville de départ et d'arrivée.")
 
     departure, arrival = result.departure, result.arrival
+    via_cities = result.get_via_cities()  # List of VIA city names
 
     # Get detection positions and confidence from NER result
     dep_start = getattr(result, "departure_start", None)
@@ -369,9 +405,26 @@ def process_sentence(sentence: str, model: str = "spacy") -> QueryResponse:
             is_fuzzy=arr_resolved.match_score < 1.0 if arr_resolved else False,
         )
 
-    # Create highlighted sentence
+    # Build VIA detection info
+    via_detections = []
+    via_positions = []
+    for via_point in result.vias:
+        via_resolved = resolver.resolve(via_point.city) if via_point.city else None
+        via_detections.append(ViaDetectionInfo(
+            raw_text=via_point.city,
+            matched_city=via_resolved.city_matched if via_resolved else None,
+            start_pos=via_point.start,
+            end_pos=via_point.end,
+            confidence=via_point.confidence,
+            match_score=via_resolved.match_score if via_resolved else 0.0,
+            is_fuzzy=via_resolved.match_score < 1.0 if via_resolved else False,
+        ))
+        if via_point.start is not None and via_point.end is not None:
+            via_positions.append((via_point.start, via_point.end))
+
+    # Create highlighted sentence with VIA
     highlighted = create_highlighted_sentence(
-        sentence, dep_start, dep_end, arr_start, arr_end
+        sentence, dep_start, dep_end, arr_start, arr_end, via_positions
     )
 
     # Extract city prefixes to find all possible stations
@@ -388,6 +441,8 @@ def process_sentence(sentence: str, model: str = "spacy") -> QueryResponse:
             model_name=model_name,
             departure=departure,
             arrival=arrival,
+            via_cities=via_cities if via_cities else None,
+            via_detections=via_detections if via_detections else None,
             error=f"Ville de départ non reconnue : {departure}. Vérifiez l'orthographe ou essayez une ville proche.",
             departure_detection=dep_detection,
             arrival_detection=arr_detection,
@@ -400,11 +455,22 @@ def process_sentence(sentence: str, model: str = "spacy") -> QueryResponse:
             model_name=model_name,
             departure=departure,
             arrival=arrival,
+            via_cities=via_cities if via_cities else None,
+            via_detections=via_detections if via_detections else None,
             error=f"Ville d'arrivée non reconnue : {arrival}. Vérifiez l'orthographe ou essayez une ville proche.",
             departure_detection=dep_detection,
             arrival_detection=arr_detection,
             highlighted_sentence=highlighted,
         )
+
+    # Resolve VIA cities to stations
+    via_prefixes = []
+    via_stations_list = []
+    for via_city in via_cities:
+        via_prefix = extract_city_prefix(via_city)
+        via_prefixes.append(via_prefix)
+        via_stations = resolver.get_all_stations_for_city(via_prefix) if via_prefix else []
+        via_stations_list.append(via_stations)
 
     # Find the best route among all station combinations
     route = None
@@ -412,11 +478,19 @@ def process_sentence(sentence: str, model: str = "spacy") -> QueryResponse:
     duration = None
     num_connections = 0
     segments = None
+    via_station_infos = []
     dep_station = dep_stations[0]  # Default
     arr_station = arr_stations[0]  # Default
 
     if pathfinder:
-        path_result = pathfinder.find_best_path_multi(dep_stations, arr_stations)
+        # Use waypoint-aware pathfinding if there are VIAs
+        if via_stations_list and all(vs for vs in via_stations_list):
+            path_result = pathfinder.find_best_path_multi_with_waypoints(
+                dep_stations, arr_stations, via_stations_list
+            )
+        else:
+            path_result = pathfinder.find_best_path_multi(dep_stations, arr_stations)
+
         if path_result.found:
             route = path_result.path
             distance = path_result.total_distance
@@ -438,6 +512,23 @@ def process_sentence(sentence: str, model: str = "spacy") -> QueryResponse:
             if route:
                 dep_station = route[0]
                 arr_station = route[-1]
+                # Build VIA station infos from the path
+                # Match intermediate stations with VIA prefixes
+                if len(route) > 2 and via_prefixes:
+                    intermediate_stations = route[1:-1]
+                    for i, via_prefix in enumerate(via_prefixes):
+                        via_prefix_lower = via_prefix.lower() if via_prefix else ""
+                        # Find the matching station in the path
+                        matched_station = None
+                        for station in intermediate_stations:
+                            if via_prefix_lower and station.lower().startswith(via_prefix_lower):
+                                matched_station = station
+                                break
+                        if matched_station:
+                            via_station_infos.append(ViaStationInfo(
+                                city=via_prefix,
+                                station=matched_station,
+                            ))
 
     return QueryResponse(
         is_valid=True,
@@ -446,6 +537,9 @@ def process_sentence(sentence: str, model: str = "spacy") -> QueryResponse:
         departure_station=dep_station,
         arrival=arr_prefix,
         arrival_station=arr_station,
+        via_cities=via_cities if via_cities else None,
+        via_stations=via_station_infos if via_station_infos else None,
+        via_detections=via_detections if via_detections else None,
         route=route,
         distance_km=distance,
         duration_min=duration,

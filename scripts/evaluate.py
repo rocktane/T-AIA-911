@@ -66,11 +66,14 @@ class EvaluationResult:
     model_name: str
     departure_metrics: EntityMetrics
     arrival_metrics: EntityMetrics
+    via_metrics: EntityMetrics
     exact_match: float
+    exact_match_with_via: float  # Exact match including VIA cities
     valid_detection_accuracy: float
     total_samples: int
     valid_samples: int
     invalid_samples: int
+    via_samples: int  # Samples with VIA cities
     errors: list  # Sample of errors for analysis
 
 
@@ -80,11 +83,15 @@ def load_test_data(csv_path: Path) -> list[dict]:
     with open(csv_path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
+            # Parse VIA cities (pipe-separated if present)
+            vias_str = row.get("vias", "")
+            vias = [v.strip() for v in vias_str.split("|") if v.strip()] if vias_str else []
             samples.append({
                 "id": row["sentenceID"],
                 "sentence": row["sentence"],
                 "departure": row["departure"],
                 "arrival": row["destination"],
+                "vias": vias,
                 "is_valid": row["is_valid"].lower() == "true",
             })
     return samples
@@ -116,6 +123,24 @@ def entity_matches(predicted: str | None, expected: str | None) -> bool:
     return normalize_for_comparison(predicted) == normalize_for_comparison(expected)
 
 
+def vias_match(predicted_vias: list[str], expected_vias: list[str]) -> tuple[int, int, int]:
+    """
+    Compare predicted VIA cities with expected VIA cities.
+
+    Returns:
+        Tuple of (true_positives, false_positives, false_negatives)
+    """
+    # Normalize for comparison
+    pred_normalized = {normalize_for_comparison(v) for v in predicted_vias}
+    exp_normalized = {normalize_for_comparison(v) for v in expected_vias}
+
+    true_positives = len(pred_normalized & exp_normalized)
+    false_positives = len(pred_normalized - exp_normalized)
+    false_negatives = len(exp_normalized - pred_normalized)
+
+    return true_positives, false_positives, false_negatives
+
+
 def evaluate_model(
     model,
     model_name: str,
@@ -125,30 +150,40 @@ def evaluate_model(
     """Evaluate a single model on test data."""
     dep_metrics = EntityMetrics()
     arr_metrics = EntityMetrics()
+    via_metrics = EntityMetrics()
     exact_matches = 0
+    exact_matches_with_via = 0
     valid_correct = 0
     errors = []
+    via_samples_count = 0
 
     for sample in test_data:
         sentence = sample["sentence"]
         expected_dep = sample["departure"]
         expected_arr = sample["arrival"]
+        expected_vias = sample.get("vias", [])
         expected_valid = sample["is_valid"]
 
         # Get prediction
         result = model.extract(sentence)
         predicted_dep = result.departure
         predicted_arr = result.arrival
+        predicted_vias = result.get_via_cities() if hasattr(result, "get_via_cities") else []
         predicted_valid = result.is_valid
 
         # Valid detection accuracy
         if predicted_valid == expected_valid:
             valid_correct += 1
 
+        # Count samples with VIA
+        if expected_vias:
+            via_samples_count += 1
+
         # Only evaluate entities for valid samples
         if expected_valid:
             # Departure
-            if entity_matches(predicted_dep, expected_dep):
+            dep_correct = entity_matches(predicted_dep, expected_dep)
+            if dep_correct:
                 dep_metrics.true_positives += 1
             else:
                 if predicted_dep:
@@ -157,7 +192,8 @@ def evaluate_model(
                     dep_metrics.false_negatives += 1
 
             # Arrival
-            if entity_matches(predicted_arr, expected_arr):
+            arr_correct = entity_matches(predicted_arr, expected_arr)
+            if arr_correct:
                 arr_metrics.true_positives += 1
             else:
                 if predicted_arr:
@@ -165,14 +201,23 @@ def evaluate_model(
                 if expected_arr:
                     arr_metrics.false_negatives += 1
 
-            # Exact match (both correct)
-            if entity_matches(predicted_dep, expected_dep) and entity_matches(predicted_arr, expected_arr):
+            # VIA cities
+            via_tp, via_fp, via_fn = vias_match(predicted_vias, expected_vias)
+            via_metrics.true_positives += via_tp
+            via_metrics.false_positives += via_fp
+            via_metrics.false_negatives += via_fn
+
+            # Exact match (departure + arrival correct)
+            if dep_correct and arr_correct:
                 exact_matches += 1
+                # Check if VIA also matches for full exact match
+                if via_tp == len(expected_vias) and via_fp == 0:
+                    exact_matches_with_via += 1
             elif len(errors) < max_errors:
                 errors.append({
                     "sentence": sentence,
-                    "expected": {"departure": expected_dep, "arrival": expected_arr},
-                    "predicted": {"departure": predicted_dep, "arrival": predicted_arr},
+                    "expected": {"departure": expected_dep, "arrival": expected_arr, "vias": expected_vias},
+                    "predicted": {"departure": predicted_dep, "arrival": predicted_arr, "vias": predicted_vias},
                 })
 
     valid_samples = sum(1 for s in test_data if s["is_valid"])
@@ -182,43 +227,50 @@ def evaluate_model(
         model_name=model_name,
         departure_metrics=dep_metrics,
         arrival_metrics=arr_metrics,
+        via_metrics=via_metrics,
         exact_match=exact_matches / valid_samples if valid_samples > 0 else 0,
+        exact_match_with_via=exact_matches_with_via / valid_samples if valid_samples > 0 else 0,
         valid_detection_accuracy=valid_correct / len(test_data) if test_data else 0,
         total_samples=len(test_data),
         valid_samples=valid_samples,
         invalid_samples=invalid_samples,
+        via_samples=via_samples_count,
         errors=errors,
     )
 
 
 def print_results(result: EvaluationResult) -> None:
     """Print evaluation results in a formatted table."""
-    print(f"\n{'=' * 60}")
+    print(f"\n{'=' * 70}")
     print(f"Model: {result.model_name}")
-    print(f"{'=' * 60}")
+    print(f"{'=' * 70}")
     print(f"Total samples: {result.total_samples}")
     print(f"  Valid: {result.valid_samples}")
     print(f"  Invalid: {result.invalid_samples}")
+    print(f"  With VIA: {result.via_samples}")
     print()
 
     # Metrics table
-    print(f"{'Metric':<25} {'Departure':<15} {'Arrival':<15}")
-    print("-" * 55)
-    print(f"{'Precision':<25} {result.departure_metrics.precision:<15.4f} {result.arrival_metrics.precision:<15.4f}")
-    print(f"{'Recall':<25} {result.departure_metrics.recall:<15.4f} {result.arrival_metrics.recall:<15.4f}")
-    print(f"{'F1-Score':<25} {result.departure_metrics.f1:<15.4f} {result.arrival_metrics.f1:<15.4f}")
-    print("-" * 55)
-    print(f"{'Exact Match':<25} {result.exact_match:.4f}")
+    print(f"{'Metric':<25} {'Departure':<15} {'Arrival':<15} {'VIA':<15}")
+    print("-" * 70)
+    print(f"{'Precision':<25} {result.departure_metrics.precision:<15.4f} {result.arrival_metrics.precision:<15.4f} {result.via_metrics.precision:<15.4f}")
+    print(f"{'Recall':<25} {result.departure_metrics.recall:<15.4f} {result.arrival_metrics.recall:<15.4f} {result.via_metrics.recall:<15.4f}")
+    print(f"{'F1-Score':<25} {result.departure_metrics.f1:<15.4f} {result.arrival_metrics.f1:<15.4f} {result.via_metrics.f1:<15.4f}")
+    print("-" * 70)
+    print(f"{'Exact Match (Dep+Arr)':<25} {result.exact_match:.4f}")
+    print(f"{'Exact Match (All)':<25} {result.exact_match_with_via:.4f}")
     print(f"{'Valid Detection Acc.':<25} {result.valid_detection_accuracy:.4f}")
 
     # Error analysis
     if result.errors:
         print(f"\n{'Sample Errors'}")
-        print("-" * 55)
+        print("-" * 70)
         for i, error in enumerate(result.errors[:5], 1):
             print(f"{i}. \"{error['sentence'][:60]}...\"")
-            print(f"   Expected: dep={error['expected']['departure']}, arr={error['expected']['arrival']}")
-            print(f"   Got:      dep={error['predicted']['departure']}, arr={error['predicted']['arrival']}")
+            expected_vias = error['expected'].get('vias', [])
+            predicted_vias = error['predicted'].get('vias', [])
+            print(f"   Expected: dep={error['expected']['departure']}, arr={error['expected']['arrival']}, via={expected_vias}")
+            print(f"   Got:      dep={error['predicted']['departure']}, arr={error['predicted']['arrival']}, via={predicted_vias}")
 
 
 def save_report(results: list[EvaluationResult], output_path: Path) -> None:
@@ -235,6 +287,7 @@ def save_report(results: list[EvaluationResult], output_path: Path) -> None:
                 "total": result.total_samples,
                 "valid": result.valid_samples,
                 "invalid": result.invalid_samples,
+                "with_via": result.via_samples,
             },
             "metrics": {
                 "departure": {
@@ -253,7 +306,16 @@ def save_report(results: list[EvaluationResult], output_path: Path) -> None:
                     "false_positives": result.arrival_metrics.false_positives,
                     "false_negatives": result.arrival_metrics.false_negatives,
                 },
+                "via": {
+                    "precision": result.via_metrics.precision,
+                    "recall": result.via_metrics.recall,
+                    "f1": result.via_metrics.f1,
+                    "true_positives": result.via_metrics.true_positives,
+                    "false_positives": result.via_metrics.false_positives,
+                    "false_negatives": result.via_metrics.false_negatives,
+                },
                 "exact_match": result.exact_match,
+                "exact_match_with_via": result.exact_match_with_via,
                 "valid_detection_accuracy": result.valid_detection_accuracy,
             },
             "errors": result.errors,
@@ -280,7 +342,11 @@ def generate_comparison_table(results: list[EvaluationResult]) -> str:
         ("Precision (Arr)", lambda r: r.arrival_metrics.precision),
         ("Recall (Arr)", lambda r: r.arrival_metrics.recall),
         ("F1 (Arr)", lambda r: r.arrival_metrics.f1),
+        ("Precision (VIA)", lambda r: r.via_metrics.precision),
+        ("Recall (VIA)", lambda r: r.via_metrics.recall),
+        ("F1 (VIA)", lambda r: r.via_metrics.f1),
         ("Exact Match", lambda r: r.exact_match),
+        ("Exact Match (All)", lambda r: r.exact_match_with_via),
         ("Valid Detection", lambda r: r.valid_detection_accuracy),
     ]
 

@@ -74,3 +74,69 @@ Accident de personne
 Bonne journée
 Bon voyage
 À bientôt
+
+# --- Ajouts: volume + variations (sans villes) ---
+
+# Service / infos SNCF (non itinéraire)
+Mon train a été annulé
+Le train est annulé
+Le train est supprimé
+Train annulé
+Train supprimé
+Le train est en avance
+Le train est à l'heure
+Le train est bondé
+Le train est plein
+Le train est complet
+Il n'y a plus de place
+Je veux un remboursement
+Je veux me faire rembourser
+Je veux un échange
+Je veux échanger mon billet
+Je veux un billet enfant
+Je veux une carte de réduction
+J'ai perdu mon billet
+J'ai oublié mon billet
+Le contrôleur m'a verbalisé
+J'ai une amende
+Où est le contrôleur ?
+Où est la voiture-bar ?
+Y a-t-il une voiture-bar ?
+La clim ne marche pas
+Il fait trop chaud dans le train
+Il fait trop froid dans le train
+
+# Questions générales (sans trajet)
+Quels sont les tarifs ?
+C'est combien un billet ?
+Combien coûte un billet ?
+Quels sont les prix ?
+Je veux payer par carte
+Je veux payer en espèces
+Je n'ai pas de réseau
+Je n'ai pas internet
+Le wifi ne marche pas
+Le wifi est lent
+Où est le wifi ?
+Je cherche un agent
+Je cherche un guichet
+Où est l'accueil ?
+Où est l'information ?
+
+# Messages “annonce”
+Mesdames et messieurs
+Le train va entrer en gare
+Le train va partir
+Veuillez vous éloigner de la bordure du quai
+Veuillez valider votre titre de transport
+Merci de votre compréhension
+
+# Variantes de ponctuation / bruit
+Bonjour !
+Bonsoir !
+Merci !
+S'il vous plait
+svp
+stp
+Je ne comprends pas.
+Je suis perdu.
