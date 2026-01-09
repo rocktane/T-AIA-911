@@ -4,9 +4,8 @@ import re
 from pathlib import Path
 
 import spacy
-from spacy.language import Language
 
-from .baseline import NERResult
+from .baseline import NERResult, ViaPoint
 from .preprocessing import correct_city_typo, normalize_city_name
 
 
@@ -140,15 +139,20 @@ class SpacyNER:
 
     # Main station keywords - stations containing these are preferred
     MAIN_STATION_KEYWORDS = [
-        "saint charles", "saint-charles",  # Marseille
-        "part dieu", "part-dieu",  # Lyon
+        "saint charles",
+        "saint-charles",  # Marseille
+        "part dieu",
+        "part-dieu",  # Lyon
         "montparnasse",  # Paris
         "gare de lyon",  # Paris
-        "saint jean", "saint-jean",  # Bordeaux
+        "saint jean",
+        "saint-jean",  # Bordeaux
         "matabiau",  # Toulouse
-        "flandres", "europe",  # Lille
+        "flandres",
+        "europe",  # Lille
         "ville",  # Generic main station suffix
-        "central", "centre",
+        "central",
+        "centre",
     ]
 
     def _build_major_cities_mapping(self):
@@ -191,22 +195,50 @@ class SpacyNER:
         """Clean entity text by removing leading/trailing prepositions and common words."""
         text = text.strip()
 
-        # Remove common French prepositions at the start
-        leading_words = ["de ", "d'", "à ", "a ", "vers ", "pour ", "depuis ", "la ", "le ", "les ", "l'"]
+        # Remove common French phrases/prepositions at the start (ordered by length, longest first)
+        leading_phrases = [
+            "en passant par ",
+            "passant par ",
+            "la gare de ",
+            "gare de ",
+            "station de ",
+            "via ",
+            "par ",
+            "de ",
+            "d'",
+            "vers ",
+            "pour ",
+            "depuis ",
+            "la ",
+            "le ",
+            "les ",
+            "l'",
+        ]
         text_lower = text.lower()
-        for prep in leading_words:
-            if text_lower.startswith(prep):
-                text = text[len(prep):]
+        for phrase in leading_phrases:
+            if text_lower.startswith(phrase):
+                text = text[len(phrase) :]
                 text_lower = text.lower()
+                # Continue checking in case there are nested prefixes
                 break
 
         # Remove trailing noise - keep removing until clean
         # These patterns can happen with NER detection errors (e.g., "Marseille en partant")
         trailing_patterns = [
-            " en partant de", " en partant", " partant de", " partant",
-            " en arrivant", " arrivant",
-            " depuis", " vers", " pour", " direction",
-            " de", " à", " a", " en",
+            " en partant de",
+            " en partant",
+            " partant de",
+            " partant",
+            " en arrivant",
+            " arrivant",
+            " depuis",
+            " vers",
+            " pour",
+            " direction",
+            " de",
+            " à",
+            " a",
+            " en",
         ]
 
         changed = True
@@ -219,7 +251,8 @@ class SpacyNER:
                     changed = True
                     break
 
-        return text.strip()
+        # Remove trailing punctuation (periods, commas, question marks, etc.)
+        return text.strip().rstrip(".,;:!?")
 
     def _validate_city(self, text: str) -> str | None:
         """Check if text is a known city and return canonical name.
@@ -257,9 +290,7 @@ class SpacyNER:
 
         # Priority 4: Fuzzy matching for typo correction
         if self.use_fuzzy and len(text) >= 4:  # Only fuzzy match for longer names
-            corrected = correct_city_typo(
-                text, self.cities_list, threshold=self.fuzzy_threshold
-            )
+            corrected = correct_city_typo(text, self.cities_list, threshold=self.fuzzy_threshold)
             if corrected:
                 return corrected
 
@@ -282,23 +313,135 @@ class SpacyNER:
                         return dep, arr
         return None, None
 
+    # VIA separators for splitting compound entities like "Lyon passons par Nice"
+    # Comprehensive list of French expressions indicating intermediate stops
+    VIA_SEPARATORS = [
+        # Direct VIA keyword
+        " via ",
+        # All conjugations of "passer par"
+        " en passant par ",
+        " passant par ",
+        " passons par ",
+        " passez par ",
+        " passe par ",
+        " passent par ",
+        # Arrêt / escale / halte
+        " avec un arrêt à ",
+        " avec un arret à ",
+        " avec un arrêt a ",
+        " avec un arret a ",
+        " avec arrêt à ",
+        " avec arret à ",
+        " avec une escale à ",
+        " avec une escale a ",
+        " avec escale à ",
+        " avec escale a ",
+        " avec halte à ",
+        " avec halte a ",
+        " avec une halte à ",
+        " avec une halte a ",
+        # Stop / pause
+        " avec un stop à ",
+        " avec un stop a ",
+        " avec stop à ",
+        " avec stop a ",
+        " avec une pause à ",
+        " avec une pause a ",
+        # Correspondance / changement
+        " avec correspondance à ",
+        " avec correspondance a ",
+        " avec une correspondance à ",
+        " avec une correspondance a ",
+        " avec changement à ",
+        " avec changement a ",
+        " avec un changement à ",
+        " avec un changement a ",
+        # Étape / détour
+        " en faisant étape à ",
+        " en faisant etape à ",
+        " en faisant étape a ",
+        " en faisant etape a ",
+        " avec un détour par ",
+        " avec un detour par ",
+        " en faisant un détour par ",
+        " en faisant un detour par ",
+        # Transit / passage
+        " en transit par ",
+        " en transitant par ",
+        " avec passage par ",
+        " avec un passage par ",
+        " avec passage à ",
+        " avec passage a ",
+        # S'arrêter
+        " en s'arrêtant à ",
+        " en s'arretant à ",
+        " en s'arrêtant a ",
+        " en s'arretant a ",
+        # Traverser
+        " en traversant ",
+        " traversant ",
+    ]
+
+    def _split_via_entity(self, text: str) -> tuple[str | None, str | None]:
+        """Try to split an entity that contains a city + VIA city.
+
+        Handles patterns like "Nantes via Bordeaux", "Paris en passant par Lyon".
+        Returns (main_city, via_city) or (None, None) if not splittable.
+        """
+        text_lower = text.lower()
+        for sep in self.VIA_SEPARATORS:
+            if sep in text_lower:
+                idx = text_lower.find(sep)
+                main_part = text[:idx].strip()
+                via_part = text[idx + len(sep):].strip()
+                main_city = self._validate_city(main_part)
+                via_city = self._validate_city(via_part)
+                if main_city and via_city:
+                    return main_city, via_city
+        return None, None
+
+    def _is_via_context(self, text: str, start_pos: int) -> bool:
+        """Check if the text before start_pos indicates a VIA context."""
+        before = text[:start_pos].strip().lower()
+        for pattern in self.VIA_CONTEXT_PATTERNS:
+            if re.search(pattern, before, re.IGNORECASE):
+                return True
+        return False
+
     def _extract_with_custom_model(self, doc) -> NERResult:
-        """Extract using custom DEPART/ARRIVEE labels."""
+        """Extract using custom DEPART/ARRIVEE/VIA labels."""
         departure = None
         arrival = None
+        vias = []
         dep_start, dep_end = None, None
         arr_start, arr_end = None, None
         dep_confidence, arr_confidence = 0.0, 0.0
+        text = doc.text
 
         for ent in doc.ents:
             if ent.label_ == "DEPART":
                 validated = self._validate_city(ent.text)
                 if validated:
-                    departure = validated
-                    dep_start = ent.start_char
-                    dep_end = ent.end_char
-                    # spaCy doesn't provide confidence for NER, use 1.0 as default
-                    dep_confidence = 1.0
+                    # Check if this is actually in a VIA context
+                    # (model may label VIA cities as DEPART if not trained with VIA labels)
+                    if self._is_via_context(text, ent.start_char):
+                        # Treat as VIA instead of departure
+                        vias.append(
+                            ViaPoint(
+                                city=validated,
+                                start=ent.start_char,
+                                end=ent.end_char,
+                                confidence=1.0,
+                                order=ent.start_char,
+                            )
+                        )
+                    elif departure is None:
+                        # Only set departure if not already set (first DEPART wins)
+                        departure = validated
+                        dep_start = ent.start_char
+                        dep_end = ent.end_char
+                        # spaCy doesn't provide confidence for NER, use 1.0 as default
+                        dep_confidence = 1.0
                 elif not departure and not arrival:
                     # Try to split compound entity (e.g., "Paris - Marseille")
                     dep, arr = self._split_compound_entity(ent.text)
@@ -312,20 +455,66 @@ class SpacyNER:
             elif ent.label_ == "ARRIVEE":
                 validated = self._validate_city(ent.text)
                 if validated:
-                    arrival = validated
-                    arr_start = ent.start_char
-                    arr_end = ent.end_char
-                    arr_confidence = 1.0
-                elif not departure and not arrival:
-                    # Try to split compound entity
-                    dep, arr = self._split_compound_entity(ent.text)
-                    if dep and arr:
-                        departure = dep
-                        arrival = arr
+                    # Check if this is actually in a VIA context
+                    # (model may have been trained without VIA labels)
+                    if self._is_via_context(text, ent.start_char):
+                        # Treat as VIA instead of arrival
+                        vias.append(
+                            ViaPoint(
+                                city=validated,
+                                start=ent.start_char,
+                                end=ent.end_char,
+                                confidence=1.0,
+                                order=ent.start_char,
+                            )
+                        )
+                    elif arrival is None:
+                        # Only set arrival if not already set
+                        arrival = validated
                         arr_start = ent.start_char
                         arr_end = ent.end_char
-                        dep_confidence = 0.9
-                        arr_confidence = 0.9
+                        arr_confidence = 1.0
+                else:
+                    # Entity didn't validate directly - try to split if it contains VIA
+                    # e.g., "Nantes via Bordeaux" -> arrival=Nantes, via=Bordeaux
+                    main_city, via_city = self._split_via_entity(ent.text)
+                    if main_city and via_city:
+                        if arrival is None:
+                            arrival = main_city
+                            arr_start = ent.start_char
+                            arr_end = ent.end_char
+                            arr_confidence = 0.9
+                        vias.append(
+                            ViaPoint(
+                                city=via_city,
+                                start=ent.start_char,
+                                end=ent.end_char,
+                                confidence=0.9,
+                                order=ent.start_char,
+                            )
+                        )
+                    elif not departure and not arrival:
+                        # Try to split compound entity
+                        dep, arr = self._split_compound_entity(ent.text)
+                        if dep and arr:
+                            departure = dep
+                            arrival = arr
+                            arr_start = ent.start_char
+                            arr_end = ent.end_char
+                            dep_confidence = 0.9
+                            arr_confidence = 0.9
+            elif ent.label_ == "VIA":
+                validated = self._validate_city(ent.text)
+                if validated:
+                    vias.append(
+                        ViaPoint(
+                            city=validated,
+                            start=ent.start_char,
+                            end=ent.end_char,
+                            confidence=1.0,
+                            order=ent.start_char,
+                        )
+                    )
 
         # Fallback for simple patterns like "Paris - Marseille" or "Paris Marseille"
         # when no DEPART/ARRIVEE labels are detected
@@ -339,7 +528,9 @@ class SpacyNER:
                 locations.sort(key=lambda x: x["start"])
 
                 # Use context-based classification first
-                dep_ctx, arr_ctx, dep_loc, arr_loc = self._classify_locations_with_info(text, locations)
+                dep_ctx, arr_ctx, dep_loc, arr_loc = self._classify_locations_with_info(
+                    text, locations
+                )
 
                 if dep_ctx and arr_ctx and dep_ctx != arr_ctx:
                     # Both found via context
@@ -391,10 +582,33 @@ class SpacyNER:
                     arr_confidence = locations[1].get("confidence", 0.6)
 
         is_valid = departure is not None and arrival is not None
+
+        # Fallback: if no VIAs detected by model, try context-based VIA detection
+        # This is needed for models not trained with VIA labels
+        if not vias and departure and arrival:
+            text = doc.text
+            locations = self._find_cities_in_text(text, [])
+            vias = self._extract_vias_from_context(text, locations, departure, arrival)
+
+        # Filter out VIAs that are the same as departure or arrival
+        # This can happen when the model incorrectly classifies a city
+        dep_base = departure.split()[0].lower() if departure else ""
+        arr_base = arrival.split()[0].lower() if arrival else ""
+        vias = [
+            v for v in vias
+            if v.city and v.city.split()[0].lower() not in (dep_base, arr_base)
+        ]
+
+        # Sort VIAs by position and assign order indices
+        vias.sort(key=lambda v: v.start if v.start else 0)
+        for i, v in enumerate(vias):
+            v.order = i
+
         return NERResult(
             departure=departure,
             arrival=arrival,
             is_valid=is_valid,
+            vias=vias,
             departure_start=dep_start,
             departure_end=dep_end,
             arrival_start=arr_start,
@@ -418,16 +632,53 @@ class SpacyNER:
 
         # Common French words that should NOT be matched as cities
         stop_words = {
-            "ville", "gare", "train", "centre", "nord", "sud", "est", "ouest",
-            "avenue", "rue", "place", "saint", "sainte", "port", "pont",
-            "beau", "belle", "grand", "grande", "petit", "petite", "haut", "haute",
-            "vieux", "vieille", "nouveau", "nouvelle", "rejoindre", "aller",
-            "partir", "arriver", "prendre", "depuis", "vers", "pour", "dans",
-            "marne", "seine", "loire", "rhone", "garonne",  # River names often in city names
+            "ville",
+            "gare",
+            "train",
+            "centre",
+            "nord",
+            "sud",
+            "est",
+            "ouest",
+            "avenue",
+            "rue",
+            "place",
+            "saint",
+            "sainte",
+            "port",
+            "pont",
+            "beau",
+            "belle",
+            "grand",
+            "grande",
+            "petit",
+            "petite",
+            "haut",
+            "haute",
+            "vieux",
+            "vieille",
+            "nouveau",
+            "nouvelle",
+            "rejoindre",
+            "aller",
+            "partir",
+            "arriver",
+            "prendre",
+            "depuis",
+            "vers",
+            "pour",
+            "dans",
+            "marne",
+            "seine",
+            "loire",
+            "rhone",
+            "garonne",  # River names often in city names
         }
 
         # First, try to match full place names (longest first)
-        sorted_places = sorted(self.all_places, key=lambda x: len(normalize_city_name(x)), reverse=True)
+        sorted_places = sorted(
+            self.all_places, key=lambda x: len(normalize_city_name(x)), reverse=True
+        )
 
         for place in sorted_places:
             place_normalized = normalize_city_name(place)
@@ -442,7 +693,7 @@ class SpacyNER:
 
             # Try to find normalized version in normalized text
             # Use regex for word boundaries
-            pattern = r'\b' + re.escape(place_normalized) + r'\b'
+            pattern = r"\b" + re.escape(place_normalized) + r"\b"
             match = re.search(pattern, text_normalized)
 
             if match:
@@ -461,26 +712,29 @@ class SpacyNER:
                         for loc in locations
                     )
                     already_found = any(
-                        normalize_city_name(loc["text"]) == place_normalized
-                        for loc in locations
+                        normalize_city_name(loc["text"]) == place_normalized for loc in locations
                     )
 
                     if not overlapping and not already_found:
-                        locations.append({
-                            "text": place,
-                            "start": orig_start,
-                            "end": orig_end,
-                            "confidence": 0.7,
-                        })
+                        locations.append(
+                            {
+                                "text": place,
+                                "start": orig_start,
+                                "end": orig_end,
+                                "confidence": 0.7,
+                            }
+                        )
 
         # Second pass: find compound city names (e.g., "Nogent sur Marne" -> "Nogent-sur-Marne")
         # Try to match multi-word sequences that could be city names
         if len(locations) < 2:
             # Try to find multi-word city names first (up to 4 words)
             # Match words (letters with optional internal hyphens, but not standalone hyphens)
-            word_pattern = r'\b([A-Za-zÀ-ÿ]+(?:-[A-Za-zÀ-ÿ]+)*)\b'
+            word_pattern = r"\b([A-Za-zÀ-ÿ]+(?:-[A-Za-zÀ-ÿ]+)*)\b"
             words = re.findall(word_pattern, text)
-            word_positions = [(m.start(), m.end(), m.group(1)) for m in re.finditer(word_pattern, text)]
+            word_positions = [
+                (m.start(), m.end(), m.group(1)) for m in re.finditer(word_pattern, text)
+            ]
 
             for window_size in [4, 3, 2, 1]:
                 for i in range(len(word_positions) - window_size + 1):
@@ -511,23 +765,51 @@ class SpacyNER:
                     if validated:
                         # Check we don't already have this city
                         already_found = any(
-                            normalize_city_name(loc["text"]).startswith(normalize_city_name(candidate))
-                            or normalize_city_name(candidate).startswith(normalize_city_name(loc["text"]))
+                            normalize_city_name(loc["text"]).startswith(
+                                normalize_city_name(candidate)
+                            )
+                            or normalize_city_name(candidate).startswith(
+                                normalize_city_name(loc["text"])
+                            )
                             for loc in locations
                         )
                         if not already_found:
-                            locations.append({
-                                "text": validated,
-                                "start": start_pos,
-                                "end": end_pos,
-                                "confidence": 0.6 + (window_size * 0.05),  # Higher confidence for longer matches
-                            })
+                            # Find the actual position of the city name in the original text
+                            # This handles cases where candidate was "en passant par Toulouse"
+                            # but we want the position of just "Toulouse"
+                            actual_start = start_pos
+                            actual_end = end_pos
+                            validated_base = validated.split()[0].lower()  # First word of validated city
+
+                            # Look for the validated city's first word in the candidate region
+                            region_text = text[start_pos:end_pos].lower()
+                            city_pos_in_region = region_text.find(validated_base)
+                            if city_pos_in_region >= 0:
+                                # Found the city in the region - adjust positions
+                                actual_start = start_pos + city_pos_in_region
+                                # Find where the city name ends (first word only for now)
+                                # Search for the end of the first word from the city position
+                                city_end_in_region = city_pos_in_region + len(validated_base)
+                                # The actual end is where the first word ends
+                                actual_end = start_pos + city_end_in_region
+
+                            locations.append(
+                                {
+                                    "text": validated,
+                                    "start": actual_start,
+                                    "end": actual_end,
+                                    "confidence": 0.6
+                                    + (window_size * 0.05),  # Higher confidence for longer matches
+                                }
+                            )
                             # Found a match, don't look for shorter matches in this region
                             break
 
         return locations
 
-    def _map_normalized_pos_to_original(self, original: str, normalized: str, norm_pos: int) -> int | None:
+    def _map_normalized_pos_to_original(
+        self, original: str, normalized: str, norm_pos: int
+    ) -> int | None:
         """Map a position in normalized text back to original text."""
         # Simple approach: iterate through both strings simultaneously
         orig_idx = 0
@@ -545,29 +827,27 @@ class SpacyNER:
             if orig_char == norm_char:
                 orig_idx += 1
                 norm_idx += 1
-            elif orig_char == '-' and norm_char == ' ':
+            elif orig_char == "-" and norm_char == " ":
                 # Hyphen was replaced by space
                 orig_idx += 1
                 norm_idx += 1
-            elif orig_char == '-':
+            elif orig_char == "-":
                 # Hyphen was removed
                 orig_idx += 1
-            elif orig_char in "àâäáã" and norm_char == 'a':
-                orig_idx += 1
-                norm_idx += 1
-            elif orig_char in "éèêë" and norm_char == 'e':
-                orig_idx += 1
-                norm_idx += 1
-            elif orig_char in "îïí" and norm_char == 'i':
-                orig_idx += 1
-                norm_idx += 1
-            elif orig_char in "ôöó" and norm_char == 'o':
-                orig_idx += 1
-                norm_idx += 1
-            elif orig_char in "ùûü" and norm_char == 'u':
-                orig_idx += 1
-                norm_idx += 1
-            elif orig_char == 'ç' and norm_char == 'c':
+            elif (
+                orig_char in "àâäáã"
+                and norm_char == "a"
+                or orig_char in "éèêë"
+                and norm_char == "e"
+                or orig_char in "îïí"
+                and norm_char == "i"
+                or orig_char in "ôöó"
+                and norm_char == "o"
+                or orig_char in "ùûü"
+                and norm_char == "u"
+                or orig_char == "ç"
+                and norm_char == "c"
+            ):
                 orig_idx += 1
                 norm_idx += 1
             else:
@@ -580,6 +860,90 @@ class SpacyNER:
 
         return norm_pos  # Fallback
 
+    # VIA context patterns (regex patterns that indicate intermediate waypoints)
+    # These patterns look for VIA indicators in the text before a city
+    # Note: We use \s* at the end to handle both cases (with/without trailing space after strip())
+    VIA_CONTEXT_PATTERNS = [
+        # Direct VIA keyword
+        r"\bvia\s*$",
+        # All conjugations of "passer par" - passant, passons, passez, passe, passent
+        r"(?:en passant|passant|passons|passez|passe|passent)\s+par\s*$",
+        r"(?:en passant|passant|passons|passez|passe|passent)\s*$",  # When "par X" is detected as single entity
+        # Arrêt / escale / halte / stop
+        r"(?:avec (?:un |une )?arr[êe]t)\s+[àa]\s*$",
+        r"(?:avec (?:une )?escale)\s+[àa]\s*$",
+        r"(?:avec (?:une )?halte)\s+[àa]\s*$",
+        r"(?:avec (?:un )?stop)\s+[àa]\s*$",
+        r"(?:avec (?:une )?pause)\s+[àa]\s*$",
+        # Correspondance / changement
+        r"(?:avec (?:une )?correspondance)\s+[àa]\s*$",
+        r"(?:avec (?:un )?changement)\s+[àa]\s*$",
+        # Étape / détour
+        r"(?:en faisant [eé]tape)\s+[àa]\s*$",
+        r"(?:avec (?:un )?d[eé]tour)\s+par\s*$",
+        r"(?:en faisant un d[eé]tour)\s+par\s*$",
+        # Transit / passage
+        r"(?:en transit|en transitant)\s+par\s*$",
+        r"(?:avec (?:un )?passage)\s+(?:par|[àa])\s*$",
+        # S'arrêter
+        r"(?:en s'arr[êe]tant)\s+[àa]\s*$",
+        # Traverser
+        r"(?:en traversant|traversant)\s*$",
+        # Patterns with optional "la gare de" noise (when spaCy detected "gare de X")
+        r"\bvia\s+la\s*$",
+        r"(?:en passant|passant|passons|passez|passe|passent)\s+par\s+la\s*$",
+        r"(?:avec (?:un |une )?arr[êe]t)\s+[àa]\s+la\s*$",
+        r"(?:avec (?:une )?escale)\s+[àa]\s+la\s*$",
+        r"(?:avec (?:une )?halte)\s+[àa]\s+la\s*$",
+        r"(?:avec (?:un )?stop)\s+[àa]\s+la\s*$",
+        r"(?:avec (?:une )?pause)\s+[àa]\s+la\s*$",
+        r"(?:avec (?:une )?correspondance)\s+[àa]\s+la\s*$",
+        r"(?:avec (?:un )?changement)\s+[àa]\s+la\s*$",
+        r"(?:en faisant [eé]tape)\s+[àa]\s+la\s*$",
+        r"(?:en transit|en transitant)\s+par\s+la\s*$",
+        r"(?:avec (?:un )?passage)\s+(?:par|[àa])\s+la\s*$",
+        r"(?:en s'arr[êe]tant)\s+[àa]\s+la\s*$",
+    ]
+
+    def _extract_vias_from_context(
+        self, text: str, locations: list[dict], departure: str | None, arrival: str | None
+    ) -> list[ViaPoint]:
+        """
+        Extract VIA waypoints from locations based on context patterns.
+
+        Uses context before each location to detect if it's a VIA point.
+        """
+        text_lower = text.lower()
+        vias = []
+
+        for loc in locations:
+            # Skip if this location is already departure or arrival
+            if loc["text"] == departure or loc["text"] == arrival:
+                continue
+
+            before = text_lower[: loc["start"]].strip()
+
+            # Check if this location is preceded by a VIA context pattern
+            for pattern in self.VIA_CONTEXT_PATTERNS:
+                if re.search(pattern, before, re.IGNORECASE):
+                    vias.append(
+                        ViaPoint(
+                            city=loc["text"],
+                            start=loc["start"],
+                            end=loc["end"],
+                            confidence=loc.get("confidence", 0.7),
+                            order=loc["start"],
+                        )
+                    )
+                    break
+
+        # Sort VIAs by position and assign order indices
+        vias.sort(key=lambda v: v.start if v.start else 0)
+        for i, v in enumerate(vias):
+            v.order = i
+
+        return vias
+
     def _extract_with_pretrained(self, doc, text: str) -> NERResult:
         """Extract using pretrained LOC labels + rule-based classification."""
         # Get all LOC entities
@@ -588,12 +952,14 @@ class SpacyNER:
             if ent.label_ in ("LOC", "GPE"):
                 validated = self._validate_city(ent.text)
                 if validated:
-                    locations.append({
-                        "text": validated,
-                        "start": ent.start_char,
-                        "end": ent.end_char,
-                        "confidence": 0.9,  # spaCy NER detected
-                    })
+                    locations.append(
+                        {
+                            "text": validated,
+                            "start": ent.start_char,
+                            "end": ent.end_char,
+                            "confidence": 0.9,  # spaCy NER detected
+                        }
+                    )
 
         if len(locations) < 2:
             # Try to find cities by dictionary matching as fallback
@@ -609,11 +975,15 @@ class SpacyNER:
         # Classify using context
         departure, arrival, dep_loc, arr_loc = self._classify_locations_with_info(text, locations)
 
+        # Extract VIA waypoints from remaining locations
+        vias = self._extract_vias_from_context(text, locations, departure, arrival)
+
         if departure and arrival and departure != arrival:
             return NERResult(
                 departure=departure,
                 arrival=arrival,
                 is_valid=True,
+                vias=vias,
                 departure_start=dep_loc["start"] if dep_loc else None,
                 departure_end=dep_loc["end"] if dep_loc else None,
                 arrival_start=arr_loc["start"] if arr_loc else None,
@@ -627,6 +997,7 @@ class SpacyNER:
             departure=locations[0]["text"],
             arrival=locations[1]["text"],
             is_valid=True,
+            vias=vias,
             departure_start=locations[0]["start"],
             departure_end=locations[0]["end"],
             arrival_start=locations[1]["start"],

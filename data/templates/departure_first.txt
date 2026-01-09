@@ -214,3 +214,113 @@ Je quitte {D} pour {A}
 Je quitte {D} direction {A}
 Quitter {D} pour aller à {A}
 En quittant {D} vers {A}
+
+# --- Ajouts: volume + variations (temps / politesse / contraintes) ---
+
+# Entre X et Y
+Trajet entre {D} et {A}
+Train entre {D} et {A}
+Horaires entre {D} et {A}
+Je cherche un trajet entre {D} et {A}
+Je cherche un train entre {D} et {A}
+Je voudrais un billet entre {D} et {A}
+Billet entre {D} et {A}
+Aller entre {D} et {A}
+
+# Temps / date / urgence
+Je veux aller de {D} à {A} aujourd'hui
+Je veux aller de {D} à {A} demain
+Je veux aller de {D} à {A} ce soir
+Je veux aller de {D} à {A} lundi
+Je veux aller de {D} à {A} mardi
+Je veux aller de {D} à {A} mercredi
+Je veux aller de {D} à {A} jeudi
+Je veux aller de {D} à {A} vendredi
+Je veux aller de {D} à {A} samedi
+Je veux aller de {D} à {A} dimanche
+Je veux aller de {D} à {A} le 24/12
+Je dois aller de {D} à {A} demain matin
+Je dois aller de {D} à {A} demain soir
+Je dois aller de {D} à {A} le plus tôt possible
+Je dois aller de {D} à {A} au plus vite
+Je dois aller de {D} à {A} rapidement
+Je cherche un train de {D} à {A} pour ce soir
+Je cherche un train de {D} à {A} pour demain
+Je cherche un train de {D} à {A} pour lundi
+Je cherche un train de {D} à {A} vers 8h
+Je cherche un train de {D} à {A} vers 18h
+
+# Contraintes (direct / correspondances)
+Je veux un train direct de {D} à {A}
+Je cherche un train direct de {D} à {A}
+Train direct de {D} à {A} s'il vous plaît
+Je veux aller de {D} à {A} sans correspondance
+Je cherche un trajet de {D} à {A} sans correspondance
+Je veux aller de {D} à {A} avec correspondance
+Je cherche un trajet de {D} à {A} avec correspondance
+Je veux un trajet de {D} à {A} le moins cher possible
+Je veux un trajet de {D} à {A} le plus rapide possible
+Le trajet le plus rapide de {D} à {A}
+Le trajet le moins cher de {D} à {A}
+
+# Politesse / registre oral
+Bonjour, je veux aller de {D} à {A}
+Salut, je veux aller de {D} à {A}
+Svp, je veux aller de {D} à {A}
+Stp, je veux aller de {D} à {A}
+Tu peux me trouver un train de {D} à {A} ?
+Tu peux me trouver un billet de {D} à {A} ?
+Tu peux me dire comment aller de {D} à {A} ?
+Peux-tu me trouver un train de {D} à {A} ?
+Pouvez-vous me trouver un train de {D} à {A} ?
+Pouvez-vous m'aider pour aller de {D} à {A} ?
+Merci, je veux aller de {D} à {A}
+
+# Phrases interrogatives variées
+Je peux aller de {D} à {A} ?
+Est-ce possible d'aller de {D} à {A} ?
+Il y a un train de {D} à {A} aujourd'hui ?
+Il y a un train de {D} à {A} demain ?
+Quel est le meilleur trajet de {D} à {A} ?
+Quel est le trajet le plus rapide de {D} à {A} ?
+Quel est le trajet le moins cher de {D} à {A} ?
+
+# Variantes typographiques / séparateurs
+De {D} vers {A} ?
+De {D} à {A} ?
+{D} -> {A}
+{D} => {A}
+{D} > {A}
+{D} / {A}
+{D} - {A} ?
+{D} → {A} ?
+
+# Formulations “destination”
+Destination {A} au départ de {D}
+Destination {A} depuis {D}
+Départ {D} destination {A}
+Départ de {D} destination {A}
+Au départ de {D} : destination {A}
+Depuis {D} : destination {A}
+
+# “aller à” explicite avec compléments
+Aller de {D} à {A} en train
+Aller de {D} à {A} en TGV
+Aller de {D} à {A} en TER
+Je veux aller de {D} à {A} en train
+Je voudrais aller de {D} à {A} en train
+Je veux aller de {D} à {A} en TGV
+Je veux aller de {D} à {A} en TER
+
+# Réservation / billet + temps
+Je voudrais réserver un billet de {D} à {A} pour demain
+Je voudrais réserver un billet de {D} à {A} pour ce soir
+Je veux réserver un billet de {D} à {A} aujourd'hui
+Réserver un billet de {D} à {A} demain
+Billet de {D} à {A} demain
+Billet de {D} à {A} ce soir
+
+# Variantes “depuis” (sans virgule)
+Depuis {D} je veux aller à {A}
+Depuis {D} je vais à {A}
+Depuis {D} direction {A} demain

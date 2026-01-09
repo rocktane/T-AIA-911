@@ -1,9 +1,20 @@
 """Baseline NER using regex patterns and dictionary matching."""
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .preprocessing import correct_city_typo, find_cities_with_fuzzy, normalize_city_name
+
+
+@dataclass
+class ViaPoint:
+    """A single VIA waypoint."""
+
+    city: str
+    start: int | None = None
+    end: int | None = None
+    confidence: float = 0.0
+    order: int = 0  # Position in the VIA sequence
 
 
 @dataclass
@@ -13,6 +24,8 @@ class NERResult:
     departure: str | None
     arrival: str | None
     is_valid: bool
+    # VIA waypoints (intermediate stops)
+    vias: list[ViaPoint] = field(default_factory=list)
     # Position and confidence information
     departure_start: int | None = None
     departure_end: int | None = None
@@ -22,8 +35,22 @@ class NERResult:
     arrival_confidence: float = 0.0
 
     def to_tuple(self) -> tuple[str | None, str | None]:
-        """Return (departure, arrival) tuple."""
+        """Return (departure, arrival) tuple for backward compatibility."""
         return (self.departure, self.arrival)
+
+    def get_via_cities(self) -> list[str]:
+        """Return list of VIA city names in order."""
+        return [v.city for v in sorted(self.vias, key=lambda x: x.order)]
+
+    def get_full_route(self) -> list[str]:
+        """Return complete ordered route: [departure, via1, via2, ..., arrival]."""
+        route = []
+        if self.departure:
+            route.append(self.departure)
+        route.extend(self.get_via_cities())
+        if self.arrival:
+            route.append(self.arrival)
+        return route
 
 
 class BaselineNER:
@@ -52,6 +79,18 @@ class BaselineNER:
         r"arrivée\s+(?:à\s+)?([A-Za-zÀ-ÿ\s\-']+?)(?:\s*$|\s*\.)",
     ]
 
+    # Patterns indicating VIA (intermediate waypoints)
+    # Note: Use (?=\s|$|[,\.\?]) lookahead for end boundaries without consuming
+    VIA_PATTERNS = [
+        r"(?:via|par)\s+([A-Za-zÀ-ÿ\-']+(?:\s+[A-Za-zÀ-ÿ\-']+)*)(?=\s+(?:et|puis|à|a|vers|jusqu)|[,\.\?]|$)",
+        r"(?:en passant par|passant par)\s+([A-Za-zÀ-ÿ\-']+(?:\s+[A-Za-zÀ-ÿ\-']+)*)(?=\s+(?:et|puis|à|a|vers|jusqu)|[,\.\?]|$)",
+        r"(?:avec (?:un )?arr[êe]t [àa]|avec escale [àa])\s+([A-Za-zÀ-ÿ\-']+(?:\s+[A-Za-zÀ-ÿ\-']+)*)(?=\s+(?:et|puis)|[,\.\?]|$)",
+        r"(?:avec (?:une )?correspondance [àa]|avec changement [àa])\s+([A-Za-zÀ-ÿ\-']+(?:\s+[A-Za-zÀ-ÿ\-']+)*)(?=\s+(?:et|puis)|[,\.\?]|$)",
+        r"(?:en faisant [eé]tape [àa])\s+([A-Za-zÀ-ÿ\-']+(?:\s+[A-Za-zÀ-ÿ\-']+)*)(?=\s+(?:et|puis)|[,\.\?]|$)",
+        # "puis X puis Y" pattern - captures intermediate cities
+        r"(?:puis)\s+([A-Za-zÀ-ÿ\-']+(?:\s+[A-Za-zÀ-ÿ\-']+)*)(?=\s+(?:puis|vers|à|a)|[,\.\?]|$)",
+    ]
+
     def __init__(self, cities: list[str], use_fuzzy: bool = True, fuzzy_threshold: int = 85):
         """
         Initialize with a list of known cities.
@@ -70,6 +109,7 @@ class BaselineNER:
         # Compile patterns
         self.dep_patterns = [re.compile(p, re.IGNORECASE) for p in self.DEPARTURE_PATTERNS]
         self.arr_patterns = [re.compile(p, re.IGNORECASE) for p in self.ARRIVAL_PATTERNS]
+        self.via_patterns = [re.compile(p, re.IGNORECASE) for p in self.VIA_PATTERNS]
 
     def _find_city_in_text(self, text: str) -> list[tuple[str, int, int]]:
         """
@@ -132,15 +172,80 @@ class BaselineNER:
             return []
         return find_cities_with_fuzzy(text, self.cities_list, threshold=self.fuzzy_threshold)
 
+    def _extract_vias(
+        self, sentence: str, departure: str | None, arrival: str | None
+    ) -> list[ViaPoint]:
+        """
+        Extract VIA waypoints from sentence, excluding departure and arrival.
+
+        Args:
+            sentence: Input sentence
+            departure: Departure city (to exclude)
+            arrival: Arrival city (to exclude)
+
+        Returns:
+            List of ViaPoint objects ordered by position in text
+        """
+        vias = []
+        excluded = {
+            departure.lower() if departure else "",
+            arrival.lower() if arrival else "",
+        }
+        seen_cities = set()
+
+        for pattern in self.via_patterns:
+            for match in pattern.finditer(sentence):
+                candidate = match.group(1).strip()
+                candidate_norm = normalize_city_name(candidate)
+
+                # Try exact match first
+                matched_city = None
+                if candidate_norm in self.cities_normalized:
+                    matched_city = self.cities_normalized[candidate_norm]
+                elif self.use_fuzzy:
+                    # Try fuzzy matching
+                    corrected = correct_city_typo(
+                        candidate, self.cities_list, threshold=self.fuzzy_threshold
+                    )
+                    if corrected:
+                        matched_city = corrected
+
+                if matched_city:
+                    city_lower = matched_city.lower()
+                    # Skip if it's departure or arrival
+                    if city_lower in excluded:
+                        continue
+                    # Skip if already found
+                    if city_lower in seen_cities:
+                        continue
+
+                    seen_cities.add(city_lower)
+                    vias.append(
+                        ViaPoint(
+                            city=matched_city,
+                            start=match.start(1),
+                            end=match.end(1),
+                            confidence=0.8,
+                            order=match.start(1),
+                        )
+                    )
+
+        # Sort by position and assign proper order indices
+        vias.sort(key=lambda v: v.start if v.start else 0)
+        for i, v in enumerate(vias):
+            v.order = i
+
+        return vias
+
     def extract(self, sentence: str) -> NERResult:
         """
-        Extract departure and arrival from a sentence.
+        Extract departure, arrival, and VIA waypoints from a sentence.
 
         Args:
             sentence: Input sentence
 
         Returns:
-            NERResult with departure, arrival, and validity
+            NERResult with departure, arrival, vias, and validity
         """
         # Find all cities in the text (exact match)
         cities_found = self._find_city_in_text(sentence)
@@ -151,7 +256,10 @@ class BaselineNER:
 
         # If pattern matching found both, validate and return
         if departure and arrival and departure != arrival:
-            return NERResult(departure=departure, arrival=arrival, is_valid=True)
+            vias = self._extract_vias(sentence, departure, arrival)
+            return NERResult(
+                departure=departure, arrival=arrival, vias=vias, is_valid=True
+            )
 
         # If we have enough exact matches, use position-based heuristic
         if len(cities_found) >= 2:
@@ -167,8 +275,9 @@ class BaselineNER:
             if arr_first_pattern:
                 dep_candidate, arr_candidate = arr_candidate, dep_candidate
 
+            vias = self._extract_vias(sentence, dep_candidate, arr_candidate)
             return NERResult(
-                departure=dep_candidate, arrival=arr_candidate, is_valid=True
+                departure=dep_candidate, arrival=arr_candidate, vias=vias, is_valid=True
             )
 
         # Fallback: try fuzzy matching for typos
@@ -199,8 +308,9 @@ class BaselineNER:
                 if arr_first_pattern:
                     dep_candidate, arr_candidate = arr_candidate, dep_candidate
 
+                vias = self._extract_vias(sentence, dep_candidate, arr_candidate)
                 return NERResult(
-                    departure=dep_candidate, arrival=arr_candidate, is_valid=True
+                    departure=dep_candidate, arrival=arr_candidate, vias=vias, is_valid=True
                 )
 
         return NERResult(departure=None, arrival=None, is_valid=False)

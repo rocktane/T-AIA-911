@@ -1,0 +1,147 @@
+# Templates avec plusieurs points intermediaires VIA
+# Depart {D}, Via {V1}, Via {V2}, Via {V3} (optionnel), Arrivee {A}
+# Une ligne = un template
+# Lignes vides et commentaires (#) sont ignores
+
+# === DEUX POINTS VIA (V1 et V2) ===
+
+# Structure "via X et Y"
+Je veux aller de {D} a {A} via {V1} et {V2}
+Je veux aller de {D} à {A} via {V1} et {V2}
+De {D} a {A} via {V1} et {V2}
+De {D} à {A} via {V1} et {V2}
+Train de {D} a {A} via {V1} et {V2}
+Train de {D} à {A} via {V1} et {V2}
+Billet de {D} a {A} via {V1} et {V2}
+Billet de {D} à {A} via {V1} et {V2}
+
+# Structure "en passant par X et Y"
+De {D} a {A} en passant par {V1} et {V2}
+De {D} à {A} en passant par {V1} et {V2}
+Je veux aller de {D} a {A} en passant par {V1} et {V2}
+Je veux aller de {D} à {A} en passant par {V1} et {V2}
+Train de {D} a {A} en passant par {V1} et {V2}
+Train de {D} à {A} en passant par {V1} et {V2}
+
+# Structure "via X puis Y"
+De {D} a {A} via {V1} puis {V2}
+De {D} à {A} via {V1} puis {V2}
+Je veux aller de {D} a {A} via {V1} puis {V2}
+Je veux aller de {D} à {A} via {V1} puis {V2}
+
+# Structure avec tirets/fleches (2 via)
+{D} - {V1} - {V2} - {A}
+{D} → {V1} → {V2} → {A}
+{D} {V1} {V2} {A}
+Train {D} {V1} {V2} {A}
+Trajet {D} - {V1} - {V2} - {A}
+Billet {D} {V1} {V2} {A}
+
+# Structure "puis" (2 via)
+De {D} puis {V1} puis {V2} puis {A}
+Je pars de {D} puis {V1} puis {V2} puis {A}
+{D} puis {V1} puis {V2} puis {A}
+Train de {D} puis {V1} puis {V2} puis {A}
+
+# Structure "avec arrets a"
+De {D} a {A} avec arrets a {V1} et {V2}
+De {D} à {A} avec arrêts à {V1} et {V2}
+Je veux aller de {D} a {A} avec des arrets a {V1} et {V2}
+Je veux aller de {D} à {A} avec des arrêts à {V1} et {V2}
+
+# Structure "avec correspondances"
+De {D} a {A} avec correspondances a {V1} et {V2}
+De {D} à {A} avec correspondances à {V1} et {V2}
+
+# Questions avec 2 via
+Comment aller de {D} a {A} via {V1} et {V2} ?
+Comment aller de {D} à {A} via {V1} et {V2} ?
+Y a-t-il un train de {D} a {A} via {V1} et {V2} ?
+Y a-t-il un train de {D} à {A} via {V1} et {V2} ?
+
+# === TROIS POINTS VIA (V1, V2 et V3) ===
+
+# Structure "via X, Y et Z"
+De {D} a {A} via {V1}, {V2} et {V3}
+De {D} à {A} via {V1}, {V2} et {V3}
+Je veux aller de {D} a {A} via {V1}, {V2} et {V3}
+Je veux aller de {D} à {A} via {V1}, {V2} et {V3}
+Train de {D} a {A} via {V1}, {V2} et {V3}
+Train de {D} à {A} via {V1}, {V2} et {V3}
+
+# Structure "en passant par X, Y et Z"
+De {D} a {A} en passant par {V1}, {V2} et {V3}
+De {D} à {A} en passant par {V1}, {V2} et {V3}
+Je veux aller de {D} a {A} en passant par {V1}, {V2} et {V3}
+Je veux aller de {D} à {A} en passant par {V1}, {V2} et {V3}
+
+# Structure avec tirets/fleches (3 via)
+{D} - {V1} - {V2} - {V3} - {A}
+{D} → {V1} → {V2} → {V3} → {A}
+{D} {V1} {V2} {V3} {A}
+Train {D} {V1} {V2} {V3} {A}
+Trajet {D} - {V1} - {V2} - {V3} - {A}
+
+# Structure "puis" (3 via)
+De {D} puis {V1} puis {V2} puis {V3} puis {A}
+Je pars de {D} puis {V1} puis {V2} puis {V3} puis {A}
+{D} puis {V1} puis {V2} puis {V3} puis {A}
+
+# Structure "avec arrets"
+De {D} a {A} avec arrets a {V1}, {V2} et {V3}
+De {D} à {A} avec arrêts à {V1}, {V2} et {V3}
+
+# --- Ajouts: volume + variations (2 vias / 3 vias) ---
+
+# === DEUX POINTS VIA (V1 et V2) - variantes supplémentaires ===
+Je veux aller de {D} à {A} via {V1}, puis {V2}
+De {D} à {A} via {V1}, puis {V2}
+Je veux aller de {D} à {A} en passant par {V1}, puis par {V2}
+De {D} à {A} en passant par {V1}, puis par {V2}
+Trajet de {D} à {A} via {V1} puis {V2}
+Train de {D} à {A} via {V1} puis {V2}
+Billet de {D} à {A} via {V1} puis {V2}
+
+# Correspondances / changements
+Je veux aller de {D} à {A} avec correspondance à {V1} puis à {V2}
+Je veux aller de {D} à {A} avec changement à {V1} puis à {V2}
+Trajet de {D} à {A} avec correspondance à {V1} puis à {V2}
+Trajet de {D} à {A} avec changement à {V1} puis à {V2}
+
+# Temps / oral
+Je veux aller de {D} à {A} via {V1} et {V2} demain
+Je veux aller de {D} à {A} via {V1} et {V2} ce soir
+Bonjour, je veux aller de {D} à {A} via {V1} et {V2}
+Svp, je veux aller de {D} à {A} via {V1} et {V2}
+Tu peux me trouver un train de {D} à {A} via {V1} et {V2} ?
+
+# Variantes typographiques
+{D} -> {V1} -> {V2} -> {A}
+{D} > {V1} > {V2} > {A}
+{D} / {V1} / {V2} / {A}
+
+# === TROIS POINTS VIA (V1, V2 et V3) - variantes supplémentaires ===
+Je veux aller de {D} à {A} via {V1}, puis {V2}, puis {V3}
+De {D} à {A} via {V1}, puis {V2}, puis {V3}
+Je veux aller de {D} à {A} en passant par {V1}, puis {V2}, puis {V3}
+De {D} à {A} en passant par {V1}, puis {V2}, puis {V3}
+Trajet de {D} à {A} via {V1} puis {V2} puis {V3}
+Train de {D} à {A} via {V1} puis {V2} puis {V3}
+
+# Correspondances / changements (3 vias)
+Je veux aller de {D} à {A} avec correspondance à {V1}, puis {V2}, puis {V3}
+Je veux aller de {D} à {A} avec changement à {V1}, puis {V2}, puis {V3}
+Trajet de {D} à {A} avec correspondance à {V1}, puis {V2}, puis {V3}
+Trajet de {D} à {A} avec changement à {V1}, puis {V2}, puis {V3}
+
+# Temps / oral (3 vias)
+Je veux aller de {D} à {A} via {V1}, {V2} et {V3} demain
+Je veux aller de {D} à {A} via {V1}, {V2} et {V3} ce soir
+Bonjour, je veux aller de {D} à {A} via {V1}, {V2} et {V3}
+Svp, je veux aller de {D} à {A} via {V1}, {V2} et {V3}
+Tu peux me trouver un train de {D} à {A} via {V1}, {V2} et {V3} ?
+
+# Variantes typographiques (3 vias)
+{D} -> {V1} -> {V2} -> {V3} -> {A}
+{D} > {V1} > {V2} > {V3} > {A}
+{D} / {V1} / {V2} / {V3} / {A}

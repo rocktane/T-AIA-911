@@ -409,6 +409,12 @@
             border-radius: 3px;
             border-bottom: 2px solid #dc3545;
         }
+        .highlight-via {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            border-bottom: 2px solid #ffc107;
+        }
         .detection-details {
             display: flex;
             gap: 15px;
@@ -427,6 +433,9 @@
         }
         .detection-item.arrival {
             border-left: 3px solid #dc3545;
+        }
+        .detection-item.via {
+            border-left: 3px solid #ffc107;
         }
         .detection-label {
             font-size: 0.7rem;
@@ -485,7 +494,7 @@
             font-size: 0.9rem;
         }
         .result-label {
-            width: 110px;
+            width: 130px;
             flex-shrink: 0;
             color: #666;
         }
@@ -791,6 +800,30 @@
                 `;
             }
 
+            // VIA detections
+            if (result.via_detections && result.via_detections.length > 0) {
+                for (let i = 0; i < result.via_detections.length; i++) {
+                    const via = result.via_detections[i];
+                    html += `
+                        <div class="detection-item via">
+                            <div class="detection-label">Etape ${i + 1} (VIA)</div>
+                            <div class="detection-value">${via.raw_text}</div>
+                            ${via.matched_city && via.matched_city !== via.raw_text ? `
+                                <div class="detection-meta">
+                                    Correspond a: <strong>${via.matched_city}</strong>
+                                </div>
+                            ` : ''}
+                            ${via.confidence > 0 ? `
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill ${getConfidenceClass(via.confidence)}" style="width: ${via.confidence * 100}%"></div>
+                                </div>
+                                <div class="detection-meta">Confiance: ${Math.round(via.confidence * 100)}%</div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+            }
+
             html += '</div></div>';
             return html;
         }
@@ -813,6 +846,29 @@
                     <span class="result-label">Depart:</span>
                     <span class="result-value">${result.departure}${result.departure !== result.departure_station ? ` (${result.departure_station})` : ''}</span>
                 </div>
+            `;
+
+            // VIA cities and stations
+            if (result.via_stations && result.via_stations.length > 0) {
+                const viaItems = result.via_stations.map(v =>
+                    v.city !== v.station ? `${v.city} (${v.station})` : v.city
+                ).join(' → ');
+                html += `
+                    <div class="result-row">
+                        <span class="result-label">Via:</span>
+                        <span class="result-value">${viaItems}</span>
+                    </div>
+                `;
+            } else if (result.via_cities && result.via_cities.length > 0) {
+                html += `
+                    <div class="result-row">
+                        <span class="result-label">Via:</span>
+                        <span class="result-value">${result.via_cities.join(' → ')}</span>
+                    </div>
+                `;
+            }
+
+            html += `
                 <div class="result-row">
                     <span class="result-label">Arrivee:</span>
                     <span class="result-value">${result.arrival}${result.arrival !== result.arrival_station ? ` (${result.arrival_station})` : ''}</span>

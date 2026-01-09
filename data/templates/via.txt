@@ -1,0 +1,160 @@
+# Templates avec un point intermediaire VIA {V}
+# Depart {D}, Via {V}, Arrivee {A}
+# Une ligne = un template
+# Lignes vides et commentaires (#) sont ignores
+
+# Structure "via"
+Je veux aller de {D} a {A} via {V}
+Je veux aller de {D} à {A} via {V}
+Je voudrais aller de {D} a {A} via {V}
+De {D} a {A} via {V}
+De {D} à {A} via {V}
+Train de {D} a {A} via {V}
+Train de {D} à {A} via {V}
+Billet de {D} a {A} via {V}
+Billet de {D} à {A} via {V}
+Trajet de {D} a {A} via {V}
+Trajet {D} {A} via {V}
+
+# Structure "en passant par"
+Je veux aller de {D} a {A} en passant par {V}
+Je veux aller de {D} à {A} en passant par {V}
+De {D} a {A} en passant par {V}
+De {D} à {A} en passant par {V}
+De {D} en passant par {V} jusqu'a {A}
+De {D} en passant par {V} jusqu'à {A}
+De {D} en passant par {V} vers {A}
+Je pars de {D} en passant par {V} pour aller a {A}
+Je pars de {D} en passant par {V} pour aller à {A}
+Train de {D} a {A} en passant par {V}
+Train de {D} à {A} en passant par {V}
+
+# Structure "avec arret a" / "avec escale a"
+De {D} a {A} avec arret a {V}
+De {D} à {A} avec arrêt à {V}
+De {D} a {A} avec escale a {V}
+De {D} à {A} avec escale à {V}
+Je veux aller de {D} a {A} avec un arret a {V}
+Je veux aller de {D} à {A} avec un arrêt à {V}
+Train de {D} a {A} avec arret a {V}
+Train de {D} à {A} avec arrêt à {V}
+
+# Structure "avec correspondance a"
+De {D} a {A} avec correspondance a {V}
+De {D} à {A} avec correspondance à {V}
+De {D} a {A} avec changement a {V}
+De {D} à {A} avec changement à {V}
+Je veux aller de {D} a {A} avec une correspondance a {V}
+Je veux aller de {D} à {A} avec une correspondance à {V}
+
+# Structure avec tirets/fleches
+{D} - {V} - {A}
+{D} → {V} → {A}
+{D} {V} {A}
+Train {D} {V} {A}
+Trajet {D} - {V} - {A}
+Billet {D} {V} {A}
+
+# Structure "par"
+De {D} a {A} par {V}
+De {D} à {A} par {V}
+Je veux aller de {D} a {A} par {V}
+Je veux aller de {D} à {A} par {V}
+Train de {D} par {V} vers {A}
+
+# Structure "puis"
+De {D} puis {V} puis {A}
+Je pars de {D} puis {V} puis {A}
+{D} puis {V} puis {A}
+Train de {D} puis {V} puis {A}
+Trajet {D} puis {V} puis {A}
+
+# Via en debut de phrase
+Via {V}, de {D} a {A}
+Via {V}, de {D} à {A}
+En passant par {V}, de {D} a {A}
+En passant par {V}, de {D} à {A}
+
+# Questions avec via
+Comment aller de {D} a {A} via {V} ?
+Comment aller de {D} à {A} via {V} ?
+Comment aller de {D} a {A} en passant par {V} ?
+Comment aller de {D} à {A} en passant par {V} ?
+Y a-t-il un train de {D} a {A} via {V} ?
+Y a-t-il un train de {D} à {A} via {V} ?
+Quel train de {D} a {A} via {V} ?
+Quel train de {D} à {A} via {V} ?
+
+# Depuis avec via
+Depuis {D}, je veux aller a {A} via {V}
+Depuis {D}, je veux aller à {A} via {V}
+Depuis {D} jusqu'a {A} via {V}
+Depuis {D} jusqu'à {A} via {V}
+Depuis {D} vers {A} en passant par {V}
+
+# Structure "en faisant etape a"
+De {D} a {A} en faisant etape a {V}
+De {D} à {A} en faisant étape à {V}
+Je veux aller de {D} a {A} en faisant une etape a {V}
+Je veux aller de {D} à {A} en faisant une étape à {V}
+
+# Rejoindre avec via
+Rejoindre {A} depuis {D} via {V}
+Rejoindre {A} depuis {D} en passant par {V}
+Je veux rejoindre {A} depuis {D} via {V}
+
+# --- Ajouts: volume + variations (temps / contraintes / oral) ---
+
+# Synonymes “passer par” / “transiter par”
+Je veux aller de {D} à {A} en transit par {V}
+De {D} à {A} en transit par {V}
+Trajet de {D} à {A} en transit par {V}
+Train de {D} à {A} en transit par {V}
+
+# “avec correspondance/changement” + formulations longues
+Je veux un trajet de {D} à {A} avec une correspondance à {V}
+Je veux un trajet de {D} à {A} avec un changement à {V}
+Je cherche un train de {D} à {A} avec correspondance à {V}
+Je cherche un train de {D} à {A} avec changement à {V}
+Trajet de {D} à {A} avec une correspondance à {V}
+Trajet de {D} à {A} avec un changement à {V}
+
+# “halte / stop”
+Je veux aller de {D} à {A} avec une halte à {V}
+De {D} à {A} avec une halte à {V}
+Je veux aller de {D} à {A} avec un stop à {V}
+De {D} à {A} avec un stop à {V}
+
+# Temps / contraintes
+Je veux aller de {D} à {A} via {V} aujourd'hui
+Je veux aller de {D} à {A} via {V} demain
+Je veux aller de {D} à {A} via {V} ce soir
+Je cherche un train de {D} à {A} via {V} pour demain
+Je cherche un train de {D} à {A} via {V} pour ce soir
+Je veux un trajet de {D} à {A} via {V} le plus tôt possible
+
+# Politesse / oral
+Bonjour, je veux aller de {D} à {A} via {V}
+Salut, je veux aller de {D} à {A} via {V}
+Svp, je veux aller de {D} à {A} via {V}
+Stp, je veux aller de {D} à {A} via {V}
+Tu peux me trouver un train de {D} à {A} via {V} ?
+Peux-tu me trouver un billet de {D} à {A} via {V} ?
+
+# Variantes typographiques
+{D} -> {V} -> {A}
+{D} > {V} > {A}
+{D} / {V} / {A}
+{D} - {V} - {A} ?
+
+# VIA placé différemment
+De {D} à {A}, via {V}
+De {D} à {A}, en passant par {V}
+Je pars de {D} pour {A}, via {V}
+Je pars de {D} vers {A}, en passant par {V}
+
+# Interrogatives
+Je peux aller de {D} à {A} via {V} ?
+Il y a un train de {D} à {A} via {V} aujourd'hui ?
+Il y a un train de {D} à {A} via {V} demain ?
+Quel est le meilleur trajet de {D} à {A} via {V} ?

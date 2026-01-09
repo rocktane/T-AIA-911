@@ -79,9 +79,11 @@ def process_sentence(
         return f"{sentence_id},INVALID"
 
     departure, arrival = result.departure, result.arrival
+    via_cities = result.get_via_cities()  # List of VIA city names
 
     if not full_output:
-        return f"{sentence_id},{departure},{arrival}"
+        via_str = "|".join(via_cities) if via_cities else ""
+        return f"{sentence_id},{departure},{arrival},{via_str}"
 
     # Step 2: Extract city prefixes and find all possible stations
     dep_prefix = extract_city_prefix(departure) if departure else None
@@ -93,22 +95,50 @@ def process_sentence(
     if not dep_stations or not arr_stations:
         return f"{sentence_id},{dep_prefix},{arr_prefix},UNKNOWN_CITY"
 
-    # Step 3: Find best route among all station combinations
+    # Step 3: Resolve VIA cities to stations
+    via_prefixes = []
+    via_stations_list = []
+    for via_city in via_cities:
+        via_prefix = extract_city_prefix(via_city)
+        via_prefixes.append(via_prefix)
+        via_stations = resolver.get_all_stations_for_city(via_prefix) if via_prefix else []
+        via_stations_list.append(via_stations)
+
+    # Step 4: Find best route among all station combinations
     dep_station = dep_stations[0]
     arr_station = arr_stations[0]
+    via_station_names = []
 
     if pathfinder:
-        path_result = pathfinder.find_best_path_multi(dep_stations, arr_stations)
+        if via_stations_list and all(vs for vs in via_stations_list):
+            # Use waypoint-aware pathfinding
+            path_result = pathfinder.find_best_path_multi_with_waypoints(
+                dep_stations, arr_stations, via_stations_list
+            )
+        else:
+            path_result = pathfinder.find_best_path_multi(dep_stations, arr_stations)
+
         if path_result.found:
             route = "→".join(path_result.path)
             dep_station = path_result.path[0]
             arr_station = path_result.path[-1]
+            # Extract VIA station names from the path (stations between first and last)
+            if len(path_result.path) > 2:
+                via_station_names = path_result.path[1:-1]
         else:
             route = "NO_PATH"
     else:
-        route = f"{dep_station}→{arr_station}"
+        # Simple route without pathfinding
+        via_simple = [vs[0] for vs in via_stations_list if vs]
+        all_stops = [dep_station] + via_simple + [arr_station]
+        route = "→".join(all_stops)
+        via_station_names = via_simple
 
-    return f'{sentence_id},{dep_prefix},{dep_station},{arr_prefix},{arr_station},"{route}"'
+    # Format output with VIA columns
+    via_cities_str = "|".join(via_prefixes) if via_prefixes else ""
+    via_stations_str = "|".join(via_station_names) if via_station_names else ""
+
+    return f'{sentence_id},{dep_prefix},{dep_station},{arr_prefix},{arr_station},{via_cities_str},{via_stations_str},"{route}"'
 
 
 def main():

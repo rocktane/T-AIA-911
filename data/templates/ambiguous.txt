@@ -19,3 +19,38 @@ Quels horaires ?
 Je cherche un train
 Prochain train
 Prochain départ
+
+# --- Ajouts: volume + variations (une seule ville) ---
+
+# Arrivée seule + temps
+Je veux aller à {A} aujourd'hui
+Je veux aller à {A} demain
+Je veux aller à {A} ce soir
+Je veux aller à {A} lundi
+Je veux aller à {A} le 24/12
+Train pour {A}
+Train pour {A} ?
+Billet pour {A}
+Billet pour {A} demain
+Un billet pour {A} s'il vous plaît
+Destination {A}
+Direction {A} demain
+
+# Départ seul + temps
+Je pars de {D} aujourd'hui
+Je pars de {D} demain
+Je pars de {D} ce soir
+Je pars de {D} lundi
+Départ {D}
+Départ de {D}
+Au départ de {D} demain
+Depuis {D} demain
+
+# Oral / politesse
+Salut, je veux aller à {A}
+Bonjour, je veux aller à {A}
+Svp, je veux aller à {A}
+Stp, je veux aller à {A}
+Salut, je pars de {D}
+Bonjour, je pars de {D}
+Svp, je pars de {D}
