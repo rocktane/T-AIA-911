@@ -19,7 +19,6 @@ Usage:
 """
 
 import json
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -37,8 +36,7 @@ from transformers import (
 )
 
 from .baseline import NERResult, ViaPoint
-from .preprocessing import normalize_city_name
-
+from .preprocessing import correct_city_typo, normalize_city_name
 
 # Label mapping for NER
 LABEL2ID = {
@@ -186,8 +184,16 @@ def compute_metrics(eval_pred) -> dict[str, float]:
                 if te not in pred_entities:
                     false_negatives += 1
 
-        precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
-        recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+        precision = (
+            true_positives / (true_positives + false_positives)
+            if (true_positives + false_positives) > 0
+            else 0
+        )
+        recall = (
+            true_positives / (true_positives + false_negatives)
+            if (true_positives + false_negatives) > 0
+            else 0
+        )
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
 
         metrics[f"precision_{entity.lower()}"] = precision
@@ -320,7 +326,9 @@ class CamemBERTTrainer:
             tokenizer=self.tokenizer,
             data_collator=data_collator,
             compute_metrics=compute_metrics,
-            callbacks=[EarlyStoppingCallback(early_stopping_patience=self.config.early_stopping_patience)],
+            callbacks=[
+                EarlyStoppingCallback(early_stopping_patience=self.config.early_stopping_patience)
+            ],
         )
 
         # Train
@@ -356,6 +364,83 @@ class CamemBERTTrainer:
 
 class CamemBERTNER:
     """CamemBERT-based NER for inference."""
+
+    # Major cities mapping: simple city name -> main station prefix
+    # These are prioritized over prefix matching to avoid false matches
+    MAJOR_CITIES = {
+        "paris": "Paris",
+        "lyon": "Lyon",
+        "marseille": "Marseille",
+        "toulouse": "Toulouse",
+        "bordeaux": "Bordeaux",
+        "lille": "Lille",
+        "nantes": "Nantes",
+        "strasbourg": "Strasbourg",
+        "nice": "Nice",
+        "montpellier": "Montpellier",
+        "rennes": "Rennes",
+        "grenoble": "Grenoble",
+        "rouen": "Rouen",
+        "toulon": "Toulon",
+        "dijon": "Dijon",
+        "angers": "Angers",
+        "nimes": "Nîmes",
+        "orleans": "Orléans",
+        "clermont ferrand": "Clermont-Ferrand",
+        "tours": "Tours",
+        "reims": "Reims",
+        "le havre": "Le Havre",
+        "le mans": "Le Mans",
+        "aix en provence": "Aix-en-Provence",
+        "brest": "Brest",
+        "limoges": "Limoges",
+        "amiens": "Amiens",
+        "perpignan": "Perpignan",
+        "besancon": "Besançon",
+        "metz": "Metz",
+        "avignon": "Avignon",
+        "nancy": "Nancy",
+        "caen": "Caen",
+        "saint etienne": "Saint-Étienne",
+        "mulhouse": "Mulhouse",
+        "poitiers": "Poitiers",
+        "dunkerque": "Dunkerque",
+        "calais": "Calais",
+        "valence": "Valence",
+        "chambery": "Chambéry",
+        "troyes": "Troyes",
+        "la rochelle": "La Rochelle",
+        "colmar": "Colmar",
+        "quimper": "Quimper",
+        "lorient": "Lorient",
+        "vannes": "Vannes",
+        "saint malo": "Saint-Malo",
+        "saint brieuc": "Saint-Brieuc",
+        "angouleme": "Angoulême",
+        "pau": "Pau",
+        "bayonne": "Bayonne",
+        "biarritz": "Biarritz",
+        "tarbes": "Tarbes",
+        "beziers": "Béziers",
+    }
+
+    # Main station keywords - stations containing these are preferred
+    MAIN_STATION_KEYWORDS = [
+        "saint charles",
+        "saint-charles",
+        "part dieu",
+        "part-dieu",
+        "montparnasse",
+        "gare de lyon",
+        "saint jean",
+        "saint-jean",
+        "matabiau",
+        "flandres",
+        "europe",
+        "ville",
+        "central",
+        "centre",
+    ]
 
     def __init__(
         self,
@@ -400,39 +485,313 @@ class CamemBERTNER:
         self.communes = set(communes) if communes else set()
         self.communes_normalized = {normalize_city_name(c): c for c in self.communes}
 
+        # Build major cities to main station mapping
+        self._build_major_cities_mapping()
+
+        # Build set of major city normalized names for quick lookup
+        self.major_city_names = set(normalize_city_name(k) for k in self.MAJOR_CITIES.keys())
+
+    def _build_major_cities_mapping(self):
+        """Build mapping from major city names to their main stations."""
+        self.major_cities_to_station = {}
+
+        for city_key in self.MAJOR_CITIES.keys():
+            city_norm = normalize_city_name(city_key)
+
+            # Find all stations that match this city name
+            matching_stations = [
+                station
+                for station_norm, station in self.cities_normalized.items()
+                if station_norm.startswith(city_norm + " ") or station_norm == city_norm
+            ]
+
+            if matching_stations:
+                # First, try to find a main station by keywords
+                main_station = None
+                for station in matching_stations:
+                    station_lower = station.lower()
+                    for keyword in self.MAIN_STATION_KEYWORDS:
+                        if keyword in station_lower:
+                            main_station = station
+                            break
+                    if main_station:
+                        break
+
+                # If no main station found by keyword, take the shortest (fallback)
+                if not main_station:
+                    main_station = min(matching_stations, key=len)
+
+                self.major_cities_to_station[city_norm] = main_station
+
+    def _clean_entity_text(self, text: str) -> str:
+        """Clean entity text by removing leading/trailing prepositions and noise."""
+        text = text.strip()
+
+        # Remove common French phrases/prepositions at the start (ordered by length, longest first)
+        leading_phrases = [
+            "en passant par ",
+            "passant par ",
+            "la gare de ",
+            "gare de ",
+            "station de ",
+            "via ",
+            "par ",
+            "de ",
+            "d'",
+            "vers ",
+            "pour ",
+            "depuis ",
+            "la ",
+            "le ",
+            "les ",
+            "l'",
+        ]
+        text_lower = text.lower()
+        for phrase in leading_phrases:
+            if text_lower.startswith(phrase):
+                text = text[len(phrase) :]
+                text_lower = text.lower()
+                break
+
+        # Remove trailing noise - these patterns can happen with NER detection errors
+        trailing_patterns = [
+            " en passant par",
+            " en passant",
+            " passant par",
+            " passant",
+            " en partant de",
+            " en partant",
+            " partant de",
+            " partant",
+            " en arrivant",
+            " arrivant",
+            " depuis",
+            " vers",
+            " pour",
+            " direction",
+            " de",
+            " en",
+        ]
+
+        changed = True
+        while changed:
+            changed = False
+            text_lower = text.lower()
+            for pattern in trailing_patterns:
+                if text_lower.endswith(pattern):
+                    text = text[: -len(pattern)]
+                    changed = True
+                    break
+
+        # Remove trailing punctuation (periods, commas, question marks, etc.)
+        return text.strip().rstrip(".,;:!?")
+
     def _validate_city(self, text: str) -> str | None:
         """Check if text is a known city and return canonical name.
 
         Priority order:
-        1. Exact match in stations
-        2. Prefix match in stations
-        3. Exact match in communes
-        4. Prefix match in communes
+        1. Clean entity text first (remove prepositions, noise)
+        2. Major cities (exact match) -> return main station
+        3. Exact match in stations
+        4. Prefix match (only for non-major cities to avoid false matches)
+        5. Exact match in communes
+        6. Prefix match in communes (only for non-major cities)
         """
         if not self.cities and not self.communes:
             return text  # No validation if no city/commune list
 
+        # Clean entity text first (remove prepositions like "de", trailing noise)
+        text = self._clean_entity_text(text)
         text_norm = normalize_city_name(text)
 
-        # Priority 1: Exact match in stations
+        # Priority 1: Check if this is a major city (exact match only)
+        # This prevents "Marseille" from matching "Marseille-en-Beauvaisis"
+        if text_norm in self.major_cities_to_station:
+            return self.major_cities_to_station[text_norm]
+
+        # Priority 2: Exact match in stations
         if text_norm in self.cities_normalized:
             return self.cities_normalized[text_norm]
 
-        # Priority 2: Prefix match in stations
-        for city_norm, city_original in self.cities_normalized.items():
-            if city_norm.startswith(text_norm + " ") or city_norm == text_norm:
-                return city_original
+        # Priority 3: Prefix match for non-major cities only
+        # Skip prefix matching if text is a major city name (already handled above)
+        if text_norm not in self.major_city_names:
+            matches = []
+            for city_norm, city_original in self.cities_normalized.items():
+                # Check if city starts with the search term (followed by space or end)
+                if city_norm.startswith(text_norm + " ") or city_norm == text_norm:
+                    matches.append(city_original)
+            if matches:
+                # Return the shortest match (most likely the main station)
+                return min(matches, key=len)
 
-        # Priority 3: Exact match in communes
+        # Priority 4: Exact match in communes
         if text_norm in self.communes_normalized:
             return self.communes_normalized[text_norm]
 
-        # Priority 4: Prefix match in communes
-        for commune_norm, commune_original in self.communes_normalized.items():
-            if commune_norm.startswith(text_norm + " ") or commune_norm == text_norm:
-                return commune_original
+        # Priority 5: Prefix match in communes (only for non-major cities)
+        if text_norm not in self.major_city_names:
+            for commune_norm, commune_original in self.communes_normalized.items():
+                if commune_norm.startswith(text_norm + " ") or commune_norm == text_norm:
+                    return commune_original
+
+        # Priority 6: Fuzzy match against major cities first (higher priority)
+        # This ensures "Marseile" -> "Marseille" instead of "Mareilles"
+        major_city_list = list(self.MAJOR_CITIES.values())
+        if major_city_list:
+            corrected = correct_city_typo(text, major_city_list, threshold=75)
+            if corrected:
+                # Map to main station if available
+                corrected_norm = normalize_city_name(corrected)
+                if corrected_norm in self.major_cities_to_station:
+                    return self.major_cities_to_station[corrected_norm]
+                return corrected
+
+        # Priority 7: Fuzzy matching against all cities for typo correction
+        all_cities = list(self.cities_normalized.values()) + list(
+            self.communes_normalized.values()
+        )
+        if all_cities:
+            corrected = correct_city_typo(text, all_cities, threshold=80)
+            if corrected:
+                return corrected
 
         return None
+
+    # VIA context patterns (regex patterns that indicate intermediate waypoints)
+    # These patterns look for VIA indicators in the text before a city
+    VIA_CONTEXT_PATTERNS = [
+        # Direct VIA keyword
+        r"\bvia\s*$",
+        # All conjugations of "passer par" - passant, passons, passez, passe, passent
+        r"(?:en passant|passant|passons|passez|passe|passent)\s+par\s*$",
+        r"(?:en passant|passant|passons|passez|passe|passent)\s*$",  # When "par X" is detected as single entity
+        # Arrêt / escale / halte / stop
+        r"(?:avec (?:un |une )?arr[êe]t)\s+[àa]\s*$",
+        r"(?:avec (?:une )?escale)\s+[àa]\s*$",
+        r"(?:avec (?:une )?halte)\s+[àa]\s*$",
+        r"(?:avec (?:un )?stop)\s+[àa]\s*$",
+        r"(?:avec (?:une )?pause)\s+[àa]\s*$",
+        # Correspondance / changement
+        r"(?:avec (?:une )?correspondance)\s+[àa]\s*$",
+        r"(?:avec (?:un )?changement)\s+[àa]\s*$",
+        # Étape / détour
+        r"(?:en faisant [eé]tape)\s+[àa]\s*$",
+        r"(?:avec (?:un )?d[eé]tour)\s+par\s*$",
+        r"(?:en faisant un d[eé]tour)\s+par\s*$",
+        # Transit / passage
+        r"(?:en transit|en transitant)\s+par\s*$",
+        r"(?:avec (?:un )?passage)\s+(?:par|[àa])\s*$",
+        # S'arrêter
+        r"(?:en s'arr[êe]tant)\s+[àa]\s*$",
+        # Traverser
+        r"(?:en traversant|traversant)\s*$",
+        # Patterns with optional "la gare de" noise (when model detected "gare de X")
+        r"\bvia\s+la\s*$",
+        r"(?:en passant|passant|passons|passez|passe|passent)\s+par\s+la\s*$",
+        r"(?:avec (?:un |une )?arr[êe]t)\s+[àa]\s+la\s*$",
+        r"(?:avec (?:une )?escale)\s+[àa]\s+la\s*$",
+        r"(?:avec (?:une )?halte)\s+[àa]\s+la\s*$",
+        r"(?:avec (?:un )?stop)\s+[àa]\s+la\s*$",
+        r"(?:avec (?:une )?correspondance)\s+[àa]\s+la\s*$",
+        r"(?:avec (?:un )?changement)\s+[àa]\s+la\s*$",
+    ]
+
+    def _is_via_context(self, text: str, start_pos: int) -> bool:
+        """Check if the text before start_pos indicates a VIA context."""
+        import re
+        before = text[:start_pos].strip().lower()
+        for pattern in self.VIA_CONTEXT_PATTERNS:
+            if re.search(pattern, before, re.IGNORECASE):
+                return True
+        return False
+
+    # VIA separators for splitting compound entities like "Lyon passons par Nice"
+    # Comprehensive list of French expressions indicating intermediate stops
+    VIA_SEPARATORS = [
+        # Direct VIA keyword
+        " via ",
+        # All conjugations of "passer par"
+        " en passant par ",
+        " passant par ",
+        " passons par ",
+        " passez par ",
+        " passe par ",
+        " passent par ",
+        # Arrêt / escale / halte
+        " avec un arrêt à ",
+        " avec un arret à ",
+        " avec un arrêt a ",
+        " avec un arret a ",
+        " avec arrêt à ",
+        " avec arret à ",
+        " avec une escale à ",
+        " avec une escale a ",
+        " avec escale à ",
+        " avec escale a ",
+        " avec halte à ",
+        " avec halte a ",
+        " avec une halte à ",
+        " avec une halte a ",
+        # Stop / pause
+        " avec un stop à ",
+        " avec un stop a ",
+        " avec stop à ",
+        " avec stop a ",
+        " avec une pause à ",
+        " avec une pause a ",
+        # Correspondance / changement
+        " avec correspondance à ",
+        " avec correspondance a ",
+        " avec une correspondance à ",
+        " avec une correspondance a ",
+        " avec changement à ",
+        " avec changement a ",
+        " avec un changement à ",
+        " avec un changement a ",
+        # Étape / détour
+        " en faisant étape à ",
+        " en faisant etape à ",
+        " en faisant étape a ",
+        " en faisant etape a ",
+        " avec un détour par ",
+        " avec un detour par ",
+        " en faisant un détour par ",
+        " en faisant un detour par ",
+        # Transit / passage
+        " en transit par ",
+        " en transitant par ",
+        " avec passage par ",
+        " avec un passage par ",
+        " avec passage à ",
+        " avec passage a ",
+        # S'arrêter
+        " en s'arrêtant à ",
+        " en s'arretant à ",
+        " en s'arrêtant a ",
+        " en s'arretant a ",
+        # Traverser
+        " en traversant ",
+        " traversant ",
+    ]
+
+    def _split_via_entity(self, text: str) -> tuple[str | None, str | None]:
+        """Try to split an entity that contains a city + VIA city.
+
+        Handles patterns like "Nantes via Bordeaux", "Paris en passant par Lyon".
+        Returns (main_city, via_city) or (None, None) if not splittable.
+        """
+        text_lower = text.lower()
+        for sep in self.VIA_SEPARATORS:
+            if sep in text_lower:
+                idx = text_lower.find(sep)
+                main_part = text[:idx].strip()
+                via_part = text[idx + len(sep):].strip()
+                main_city = self._validate_city(main_part)
+                via_city = self._validate_city(via_part)
+                if main_city and via_city:
+                    return main_city, via_city
+        return None, None
 
     def extract(self, sentence: str) -> NERResult:
         """
@@ -485,27 +844,79 @@ class CamemBERTNER:
             nonlocal dep_confidence, arr_confidence, vias
 
             validated = self._validate_city(entity_text)
-            if not validated:
-                return
 
             if entity_type == "DEPART":
-                departure = validated
-                dep_start = start
-                dep_end = end
-                dep_confidence = avg_prob
+                # Check if this is actually in a VIA context
+                # (model may label VIA cities as DEPART if not trained with VIA labels)
+                if self._is_via_context(sentence, start):
+                    # Treat as VIA instead of departure
+                    if validated:
+                        vias.append(
+                            ViaPoint(
+                                city=validated,
+                                start=start,
+                                end=end,
+                                confidence=avg_prob,
+                                order=start,
+                            )
+                        )
+                elif validated:
+                    # Only set departure if not already set (first DEPART wins)
+                    if departure is None:
+                        departure = validated
+                        dep_start = start
+                        dep_end = end
+                        dep_confidence = avg_prob
             elif entity_type == "ARRIVEE":
-                arrival = validated
-                arr_start = start
-                arr_end = end
-                arr_confidence = avg_prob
+                # Check if this is actually in a VIA context
+                if self._is_via_context(sentence, start):
+                    # Treat as VIA instead of arrival
+                    if validated:
+                        vias.append(
+                            ViaPoint(
+                                city=validated,
+                                start=start,
+                                end=end,
+                                confidence=avg_prob,
+                                order=start,
+                            )
+                        )
+                elif validated:
+                    # Only set arrival if not already set (first arrival wins)
+                    if arrival is None:
+                        arrival = validated
+                        arr_start = start
+                        arr_end = end
+                        arr_confidence = avg_prob
+                else:
+                    # Entity didn't validate - try to split if it contains VIA
+                    main_city, via_city = self._split_via_entity(entity_text)
+                    if main_city and via_city:
+                        if arrival is None:
+                            arrival = main_city
+                            arr_start = start
+                            arr_end = end
+                            arr_confidence = avg_prob * 0.9
+                        vias.append(
+                            ViaPoint(
+                                city=via_city,
+                                start=start,
+                                end=end,
+                                confidence=avg_prob * 0.9,
+                                order=start,
+                            )
+                        )
             elif entity_type == "VIA":
-                vias.append(ViaPoint(
-                    city=validated,
-                    start=start,
-                    end=end,
-                    confidence=avg_prob,
-                    order=start,
-                ))
+                if validated:
+                    vias.append(
+                        ViaPoint(
+                            city=validated,
+                            start=start,
+                            end=end,
+                            confidence=avg_prob,
+                            order=start,
+                        )
+                    )
 
         for i, (pred, offset, prob) in enumerate(zip(predictions, offset_mapping, probs)):
             if offset == [0, 0]:
@@ -516,7 +927,7 @@ class CamemBERTNER:
             if label.startswith("B-"):
                 # Save previous entity
                 if current_entity and current_tokens:
-                    prev_end = offset_mapping[i-1][1] if i > 0 else offset[1]
+                    prev_end = offset_mapping[i - 1][1] if i > 0 else offset[1]
                     entity_text = self._reconstruct_entity(sentence, current_start, prev_end)
                     avg_prob = np.mean(current_probs)
                     save_entity(current_entity, entity_text, current_start, prev_end, avg_prob)
@@ -555,6 +966,15 @@ class CamemBERTNER:
             save_entity(current_entity, entity_text, current_start, end_pos, avg_prob)
 
         is_valid = departure is not None and arrival is not None
+
+        # Filter out VIAs that are the same as departure or arrival
+        # This can happen when the model incorrectly classifies a city
+        dep_base = departure.split()[0].lower() if departure else ""
+        arr_base = arrival.split()[0].lower() if arrival else ""
+        vias = [
+            v for v in vias
+            if v.city and v.city.split()[0].lower() not in (dep_base, arr_base)
+        ]
 
         # Sort VIAs by position and assign order indices
         vias.sort(key=lambda v: v.start if v.start else 0)
