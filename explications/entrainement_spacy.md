@@ -3,6 +3,23 @@
 L'entraînement se décompose en deux parties : le script Python qui orchestre le processus et le fichier de configuration qui définit l'architecture et les hyperparamètres.
 
 ---
+Sommaire des concepts
+
+Ce document fait référence à plusieurs notions détaillées dans des fichiers dédiés :
+
+| Concept | Description | Lien |
+|---------|-------------|------|
+| Tok2Vec | Transformation des tokens en vecteurs | [Tok2Vec.md](./Tok2Vec.md) |
+| MultiHashEmbed | Embedding par hash (NORM, PREFIX, SUFFIX, SHAPE) | [MultiHashEmbed.md](./MultiHashEmbed.md) |
+| MaxoutWindowEncoder | Encodeur contextuel à fenêtre glissante | [MaxoutWindowEncoder.md](./MaxoutWindowEncoder.md) |
+| TransitionBasedParser | Parser NER shift-reduce | [TransitionBasedParser.md](./TransitionBasedParser.md) |
+| Tok2VecListener | Connexion tok2vec ↔ NER | [Tok2VecListener.md](./Tok2VecListener.md) |
+| Adam Optimizer | Optimiseur avec warmup linéaire | [AdamOptimizer.md](./AdamOptimizer.md) |
+| Dropout | Régularisation (10%) | [Dropout.md](./Dropout.md) |
+| Early Stopping | Patience et arrêt anticipé | [EarlyStopping.md](./EarlyStopping.md) |
+| F1-Score | Métrique d'évaluation NER | [F1Score.md](./F1Score.md) |
+
+---
 1. Le Script d'entraînement (train_spacy.py)
 
 Le script est un wrapper autour de la commande spacy train. Il :
@@ -39,13 +56,15 @@ batch_size = 1000              # Tokens par batch
 
 [components.tok2vec] - Encodage des tokens
 
-Le tok2vec transforme les tokens en vecteurs numériques :
+Le tok2vec transforme les tokens en vecteurs numériques. → [Explication détaillée du Tok2Vec](./Tok2Vec.md)
 
 [components.tok2vec.model.embed]
 @architectures = "spacy.MultiHashEmbed.v2"
 width = 96                     # Dimension des embeddings
 attrs = ["NORM","PREFIX","SUFFIX","SHAPE"]  # Attributs utilisés
 rows = [5000,2500,2500,2500]   # Taille des tables de hash par attribut
+
+→ [Explication détaillée du MultiHashEmbed](./MultiHashEmbed.md)
 ┌──────────┬─────────────────────────────────────────┐
 │ Attribut │               Description               │
 ├──────────┼─────────────────────────────────────────┤
@@ -64,6 +83,8 @@ depth = 4       # 4 couches convolutionnelles
 window_size = 1 # Contexte ±1 token
 maxout_pieces = 3  # Activation maxout à 3 pièces
 
+→ [Explication détaillée du MaxoutWindowEncoder](./MaxoutWindowEncoder.md)
+
 [components.ner] - Reconnaissance d'entités
 
 @architectures = "spacy.TransitionBasedParser.v2"
@@ -78,12 +99,18 @@ Le NER utilise un parser basé sur les transitions (shift-reduce) qui prédit de
 - LAST : fin d'entité
 - OUT : hors entité
 
+→ [Explication détaillée du TransitionBasedParser](./TransitionBasedParser.md)
+→ [Explication du Tok2VecListener](./Tok2VecListener.md)
+
 [training] - Hyperparamètres d'entraînement
 
 dropout = 0.1           # Régularisation (10% des neurones désactivés)
 patience = 1600         # Early stopping après 1600 évaluations sans amélioration
 max_steps = 20000       # Maximum d'itérations
 eval_frequency = 200    # Évaluation toutes les 200 steps
+
+→ [Explication du Dropout](./Dropout.md)
+→ [Explication de l'Early Stopping](./EarlyStopping.md)
 
 [training.optimizer] - Optimiseur Adam
 
@@ -92,6 +119,8 @@ beta1 = 0.9             # Momentum du gradient
 beta2 = 0.999           # Momentum du gradient carré
 L2 = 0.01               # Régularisation L2 (weight decay)
 grad_clip = 1.0         # Clipping du gradient (évite l'explosion)
+
+→ [Explication détaillée de l'optimiseur Adam](./AdamOptimizer.md)
 
 [training.optimizer.learn_rate] - Learning rate schedule
 
@@ -109,6 +138,8 @@ Le warmup linéaire :
 ents_f = 1.0   # Optimise uniquement le F1-score
 ents_p = 0.0   # Ignore la précision seule
 ents_r = 0.0   # Ignore le recall seul
+
+→ [Explication du F1-Score](./F1Score.md)
 
 ---
 ★ Insight ─────────────────────────────────────
