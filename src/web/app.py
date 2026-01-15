@@ -239,6 +239,17 @@ async def index(request: Request):
     )
 
 
+@app.get("/docs", response_class=HTMLResponse)
+async def docs(request: Request):
+    """Render documentation page."""
+    return templates.TemplateResponse(
+        "docs.html",
+        {
+            "request": request,
+        },
+    )
+
+
 @app.post("/", response_class=HTMLResponse)
 async def process_form(request: Request, sentence: str = Form(...), model: str = Form("spacy")):
     """Process form submission and return results."""

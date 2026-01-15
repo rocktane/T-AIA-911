@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation - Travel Order Resolver</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000'%3E%3Cpath d='M12 2C8 2 4 2.5 4 6v9.5c0 1.93 1.57 3.5 3.5 3.5L6 20.5v.5h2l2-2h4l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-4-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-6H6V6h5v5zm2 0V6h5v5h-5zm3.5 6c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+        }
+
+        /* Header */
+        header {
+            background: #000;
+            color: #fff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        header h1 {
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            font-family: 'Courier New', monospace;
+        }
+        header a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 8px 16px;
+            border: 1px solid #fff;
+            transition: all 0.2s;
+        }
+        header a:hover {
+            background: #fff;
+            color: #000;
+        }
+
+        /* Layout */
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: #fff;
+            border-right: 1px solid #e0e0e0;
+            height: calc(100vh - 52px);
+            position: sticky;
+            top: 52px;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+        .sidebar-section {
+            margin-bottom: 20px;
+        }
+        .sidebar-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        .sidebar-link {
+            display: block;
+            padding: 8px 20px;
+            color: #333;
+            text-decoration: none;
+            font-size: 0.85rem;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .sidebar-link:hover {
+            background: #f0f0f0;
+            border-left-color: #ccc;
+        }
+        .sidebar-link.active {
+            background: #f0f0f0;
+            border-left-color: #000;
+            font-weight: 500;
+        }
+
+        /* Main content */
+        main {
+            flex: 1;
+            padding: 40px;
+            max-width: 900px;
+        }
+
+        /* Section styling */
+        .doc-section {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .doc-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #000;
+        }
+        .doc-section h3 {
+            font-size: 1.1rem;
+            margin: 25px 0 15px;
+            color: #333;
+        }
+        .doc-section p {
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        /* Code blocks */
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            margin: 15px 0;
+            line-height: 1.5;
+        }
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid #e0e0e0;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Insight box */
+        .insight {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        .insight-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+        .insight p {
+            margin: 8px 0;
+            font-size: 0.9rem;
+        }
+
+        /* Diagram box */
+        .diagram {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        .diagram pre {
+            background: transparent;
+            color: #333;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 0.75rem;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        .badge-green {
+            background: #d4edda;
+            color: #155724;
+        }
+        .badge-blue {
+            background: #cce5ff;
+            color: #004085;
+        }
+        .badge-red {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .badge-orange {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* Quick nav */
+        .quick-nav {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .quick-nav-item {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 20px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.2s;
+        }
+        .quick-nav-item:hover {
+            border-color: #000;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .quick-nav-item h4 {
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+        .quick-nav-item p {
+            font-size: 0.85rem;
+            color: #666;
+            margin: 0;
+        }
+
+        /* Comparison table */
+        .comparison-header {
+            text-align: center !important;
+        }
+        .check {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .cross {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .sidebar {
+                display: none;
+            }
+            main {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>TRAVEL ORDER RESOLVER - DOCUMENTATION</h1>
+        <a href="/">Retour a l'application</a>
+    </header>
+
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Vue d'ensemble</div>
+                <a href="#intro" class="sidebar-link active">Introduction</a>
+                <a href="#pipeline" class="sidebar-link">Pipeline NLP</a>
+                <a href="#modeles" class="sidebar-link">Choix des modeles</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">Concepts NLP</div>
+                <a href="#bio" class="sidebar-link">Schema BIO</a>
+                <a href="#bpe" class="sidebar-link">Tokenization BPE</a>
+                <a href="#f1" class="sidebar-link">F1-Score</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">Architecture spaCy</div>
+                <a href="#tok2vec" class="sidebar-link">Tok2Vec</a>
+                <a href="#multihash" class="sidebar-link">MultiHashEmbed</a>
+                <a href="#maxout" class="sidebar-link">MaxoutWindowEncoder</a>
+                <a href="#transition" class="sidebar-link">TransitionBasedParser</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">Architecture CamemBERT</div>
+                <a href="#transformer" class="sidebar-link">Transformer</a>
+                <a href="#finetuning" class="sidebar-link">Fine-tuning</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">Entrainement</div>
+                <a href="#adam" class="sidebar-link">Optimiseur Adam</a>
+                <a href="#warmup" class="sidebar-link">Warmup</a>
+                <a href="#dropout" class="sidebar-link">Dropout</a>
+                <a href="#earlystop" class="sidebar-link">Early Stopping</a>
+            </div>
+        </nav>
+
+        <main>
+            <!-- Introduction -->
+            <section id="intro" class="doc-section">
+                <h2>Introduction</h2>
+                <p>
+                    <strong>Travel Order Resolver</strong> est un systeme NLP (Natural Language Processing) concu pour extraire les villes de depart et d'arrivee a partir de phrases en francais, puis generer des itineraires ferroviaires SNCF.
+                </p>
+
+                <h3>Exemple d'utilisation</h3>
+                <div class="diagram">
+<pre>Entree:  "Je veux aller de Paris a Lyon"
+            |
+            v
+    [ Module NLP ]
+            |
+            v
+Sortie:  Depart: Paris
+         Arrivee: Lyon
+         Itineraire: Paris Gare de Lyon -> Lyon Part-Dieu</pre>
+                </div>
+
+                <h3>Deux modeles disponibles</h3>
+                <table>
+                    <tr>
+                        <th>Modele</th>
+                        <th>Precision (F1)</th>
+                        <th>Vitesse</th>
+                        <th>Utilisation</th>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-green">spaCy</span></td>
+                        <td>95.72%</td>
+                        <td>~1 ms/phrase</td>
+                        <td>Production, temps reel</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">CamemBERT</span></td>
+                        <td>99.67%</td>
+                        <td>~15 ms/phrase (GPU)</td>
+                        <td>Precision maximale</td>
+                    </tr>
+                </table>
+            </section>
+
+            <!-- Pipeline -->
+            <section id="pipeline" class="doc-section">
+                <h2>Pipeline NLP</h2>
+                <p>Le systeme traite les phrases en plusieurs etapes successives :</p>
+
+                <div class="diagram">
+<pre>INPUT: sentenceID,sentence (UTF-8)
+         |
+         v
++-------------------------------------+
+|         MODULE NLP                  |
+|  Preprocessing -> NER -> Labels     |
+|  (spaCy ou CamemBERT)               |
++-------------------------------------+
+         |
+    +----+----+
+    v         v
+ VALIDE    INVALIDE -> sentenceID,INVALID
+    |
+    v
++-------------------------------------+
+|      MODULE GEOLOCALISATION         |
+|  Ville = Gare ?                     |
+|  NON -> Gare la plus proche (KDTree)|
++-------------------------------------+
+         |
+         v
++-------------------------------------+
+|       MODULE PATHFINDING            |
+|  Graphe SNCF -> Dijkstra -> Chemin  |
++-------------------------------------+
+         |
+         v
+OUTPUT: sentenceID,ville_dep,gare_dep,ville_arr,gare_arr,itineraire</pre>
+                </div>
+
+                <h3>Etapes detaillees</h3>
+                <ol style="padding-left: 20px; margin: 15px 0;">
+                    <li><strong>Preprocessing</strong> : Nettoyage du texte, normalisation</li>
+                    <li><strong>NER (Named Entity Recognition)</strong> : Extraction des entites DEPART, ARRIVEE, VIA</li>
+                    <li><strong>Geolocalisation</strong> : Correspondance ville -> gare SNCF via KD-Tree</li>
+                    <li><strong>Pathfinding</strong> : Calcul d'itineraire avec Dijkstra sur le graphe ferroviaire</li>
+                </ol>
+            </section>
+
+            <!-- Choix des modeles -->
+            <section id="modeles" class="doc-section">
+                <h2>Pourquoi spaCy et CamemBERT ?</h2>
+                <p>
+                    Pour notre tache d'extraction de trajets ferroviaires, nous avons choisi des modeles NER specialises plutot que des LLMs generalistes (Qwen, Llama, GPT). Voici pourquoi :
+                </p>
+
+                <h3>Comparaison NER vs LLM</h3>
+                <table>
+                    <tr>
+                        <th>Critere</th>
+                        <th>Modeles NER</th>
+                        <th>LLMs generalistes</th>
+                    </tr>
+                    <tr>
+                        <td>Tache</td>
+                        <td>Classification de tokens</td>
+                        <td>Generation de texte</td>
+                    </tr>
+                    <tr>
+                        <td>Sortie</td>
+                        <td>Labels structures (B-DEPART, I-ARRIVEE...)</td>
+                        <td>Texte libre (parsing requis)</td>
+                    </tr>
+                    <tr>
+                        <td>Taille</td>
+                        <td>100 Mo - 500 Mo</td>
+                        <td>4 Go - 70+ Go</td>
+                    </tr>
+                    <tr>
+                        <td>Latence</td>
+                        <td><span class="check">1-15 ms</span></td>
+                        <td><span class="cross">500-2000 ms</span></td>
+                    </tr>
+                    <tr>
+                        <td>Determinisme</td>
+                        <td><span class="check">100%</span></td>
+                        <td><span class="cross">Variable</span></td>
+                    </tr>
+                    <tr>
+                        <td>Hallucinations</td>
+                        <td><span class="check">Impossible</span></td>
+                        <td><span class="cross">Possible</span></td>
+                    </tr>
+                </table>
+
+                <div class="insight">
+                    <div class="insight-title">Analogie</div>
+                    <p>Pour couper des legumes, on utilise un couteau, pas un robot cuiseur multifonction.</p>
+                    <p>Pour extraire des entites, on utilise un NER, pas un LLM.</p>
+                </div>
+            </section>
+
+            <!-- Schema BIO -->
+            <section id="bio" class="doc-section">
+                <h2>Schema BIO (Begin-Inside-Outside)</h2>
+                <p>
+                    Le schema BIO permet d'etiqueter chaque token pour delimiter precisement les entites, meme multi-mots.
+                </p>
+
+                <h3>Les 3 prefixes</h3>
+                <table>
+                    <tr>
+                        <th>Prefixe</th>
+                        <th>Signification</th>
+                        <th>Exemple</th>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-green">B</span></td>
+                        <td>Begin - Debut d'entite</td>
+                        <td>"Saint" dans "Saint-Pierre-des-Corps"</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-blue">I</span></td>
+                        <td>Inside - Suite de l'entite</td>
+                        <td>"Pierre", "des", "Corps"</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-orange">O</span></td>
+                        <td>Outside - Hors entite</td>
+                        <td>"Je", "veux", "aller", "de"</td>
+                    </tr>
+                </table>
+
+                <h3>Exemple complet</h3>
+                <div class="diagram">
+<pre>Phrase: "Aller de Aix-en-Provence a Saint-Malo"
+
+Tokens:     Aller   de   Aix   en   Provence   a   Saint   Malo
+Labels:       O     O   B-DEP I-DEP  I-DEP     O   B-ARR  I-ARR
+
+                        |_____________|            |________|
+                        Entite DEPART              Entite ARRIVEE
+                        "Aix-en-Provence"          "Saint-Malo"</pre>
+                </div>
+
+                <h3>Les 7 labels du projet</h3>
+                <table>
+                    <tr>
+                        <th>Label</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr><td>O</td><td>Token hors entite</td></tr>
+                    <tr><td>B-DEPART</td><td>Debut de ville de depart</td></tr>
+                    <tr><td>I-DEPART</td><td>Suite de ville de depart</td></tr>
+                    <tr><td>B-ARRIVEE</td><td>Debut de ville d'arrivee</td></tr>
+                    <tr><td>I-ARRIVEE</td><td>Suite de ville d'arrivee</td></tr>
+                    <tr><td>B-VIA</td><td>Debut de ville intermediaire</td></tr>
+                    <tr><td>I-VIA</td><td>Suite de ville intermediaire</td></tr>
+                </table>
+            </section>
+
+            <!-- Tokenization BPE -->
+            <section id="bpe" class="doc-section">
+                <h2>Tokenization BPE (Byte-Pair Encoding)</h2>
+                <p>
+                    CamemBERT utilise la tokenization BPE pour decomposer les mots en sous-unites, permettant de gerer un vocabulaire ouvert (mots inconnus).
+                </p>
+
+                <h3>Fonctionnement</h3>
+                <div class="diagram">
+<pre>Mot rare:     "Pontarlier"
+              |
+              v
+Sous-mots:    ["_Pont", "ar", "lier"]
+
+Le modele apprend a partir des parties connues !</pre>
+                </div>
+
+                <h3>Alignement tokens &lt;-&gt; caracteres</h3>
+                <p>L'<code>offset_mapping</code> permet de retrouver la position originale :</p>
+                <div class="diagram">
+<pre>Texte:    "Clermont-Ferrand"
+          0       8       16
+
+Tokens:   [_Cler, mont, -, Fer, rand]
+Offsets:  [(0,4), (4,8), (8,9), (9,12), (12,16)]
+
+Labels:   [B-DEPART, I-DEPART, I-DEPART, I-DEPART, I-DEPART]</pre>
+                </div>
+
+                <div class="insight">
+                    <div class="insight-title">Insight</div>
+                    <p>Le prefixe <code>_</code> (underscore special) indique le debut d'un nouveau mot. Sans ce prefixe, le token fait partie du mot precedent.</p>
+                </div>
+            </section>
+
+            <!-- F1-Score -->
+            <section id="f1" class="doc-section">
+                <h2>F1-Score : Evaluer un modele NER</h2>
+                <p>
+                    L'accuracy est biaisee par la classe majoritaire (O). Le F1-Score combine Precision et Recall pour une evaluation equilibree.
+                </p>
+
+                <h3>Definitions</h3>
+                <table>
+                    <tr>
+                        <th>Metrique</th>
+                        <th>Question</th>
+                        <th>Formule</th>
+                    </tr>
+                    <tr>
+                        <td>Precision</td>
+                        <td>Parmi mes predictions, combien sont correctes ?</td>
+                        <td>VP / (VP + FP)</td>
+                    </tr>
+                    <tr>
+                        <td>Recall</td>
+                        <td>Parmi les vraies entites, combien ai-je trouvees ?</td>
+                        <td>VP / (VP + FN)</td>
+                    </tr>
+                    <tr>
+                        <td>F1</td>
+                        <td>Equilibre precision/recall</td>
+                        <td>2 x (P x R) / (P + R)</td>
+                    </tr>
+                </table>
+
+                <h3>Resultats de nos modeles</h3>
+                <table>
+                    <tr>
+                        <th>Entite</th>
+                        <th>spaCy Precision</th>
+                        <th>spaCy Recall</th>
+                        <th>spaCy F1</th>
+                    </tr>
+                    <tr>
+                        <td>DEPART</td>
+                        <td>99.62%</td>
+                        <td>92.12%</td>
+                        <td>95.72%</td>
+                    </tr>
+                    <tr>
+                        <td>ARRIVEE</td>
+                        <td>100.00%</td>
+                        <td>90.15%</td>
+                        <td>94.82%</td>
+                    </tr>
+                </table>
+
+                <div class="insight">
+                    <div class="insight-title">Interpretation</div>
+                    <p>Haute precision (99.62%) : quand le modele dit "c'est une ville", il a presque toujours raison.</p>
+                    <p>Recall de 92% : il manque 8% des villes. Pour une application de reservation, mieux vaut demander confirmation que d'envoyer un train vers la mauvaise ville !</p>
+                </div>
+            </section>
+
+            <!-- Tok2Vec -->
+            <section id="tok2vec" class="doc-section">
+                <h2>Tok2Vec (spaCy)</h2>
+                <p>
+                    Tok2Vec transforme chaque token en un vecteur contextuel de 96 dimensions, capturant le sens du mot dans son contexte.
+                </p>
+
+                <h3>Architecture</h3>
+                <div class="diagram">
+<pre>Phrase: "Je veux aller de Paris a Lyon"
+         |    |     |    |    |   |   |
+         v    v     v    v    v   v   v
+    +----------------------------------+
+    |          MultiHashEmbed          |
+    |   (4 attributs: NORM, PREFIX,    |
+    |    SUFFIX, SHAPE)                |
+    +----------------------------------+
+                    |
+                    v
+    +----------------------------------+
+    |       MaxoutWindowEncoder        |
+    |   (4 couches, fenetre +-4)       |
+    +----------------------------------+
+                    |
+                    v
+    Vecteurs contextuels (96 dim par token)</pre>
+                </div>
+            </section>
+
+            <!-- MultiHashEmbed -->
+            <section id="multihash" class="doc-section">
+                <h2>MultiHashEmbed (spaCy)</h2>
+                <p>
+                    Alternative legere aux embeddings classiques (~5 Mo vs 500 Mo). Utilise 4 attributs pour representer chaque token.
+                </p>
+
+                <h3>Les 4 attributs</h3>
+                <table>
+                    <tr>
+                        <th>Attribut</th>
+                        <th>Description</th>
+                        <th>Exemple "Paris"</th>
+                    </tr>
+                    <tr>
+                        <td>NORM</td>
+                        <td>Forme normalisee</td>
+                        <td>"paris"</td>
+                    </tr>
+                    <tr>
+                        <td>PREFIX</td>
+                        <td>3 premiers caracteres</td>
+                        <td>"Par"</td>
+                    </tr>
+                    <tr>
+                        <td>SUFFIX</td>
+                        <td>3 derniers caracteres</td>
+                        <td>"ris"</td>
+                    </tr>
+                    <tr>
+                        <td>SHAPE</td>
+                        <td>Forme abstraite</td>
+                        <td>"Xxxxx" (majuscule initiale)</td>
+                    </tr>
+                </table>
+
+                <div class="insight">
+                    <div class="insight-title">Pourquoi SHAPE est crucial pour le NER</div>
+                    <p>"Paris" -> "Xxxxx" (majuscule = probablement nom propre)</p>
+                    <p>"paris" -> "xxxxx" (minuscule = mot commun)</p>
+                    <p>Le modele apprend que SHAPE "Xxxxx" correle avec les noms de ville !</p>
+                </div>
+            </section>
+
+            <!-- MaxoutWindowEncoder -->
+            <section id="maxout" class="doc-section">
+                <h2>MaxoutWindowEncoder (spaCy)</h2>
+                <p>
+                    Encodeur contextuel a fenetre glissante. 4 couches de convolution permettent une portee de +-4 tokens.
+                </p>
+
+                <h3>Configuration</h3>
+                <table>
+                    <tr>
+                        <th>Parametre</th>
+                        <th>Valeur</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>width</td>
+                        <td>96</td>
+                        <td>Dimensions de sortie</td>
+                    </tr>
+                    <tr>
+                        <td>depth</td>
+                        <td>4</td>
+                        <td>Nombre de couches</td>
+                    </tr>
+                    <tr>
+                        <td>window_size</td>
+                        <td>1</td>
+                        <td>Voisins immediats (+-1)</td>
+                    </tr>
+                    <tr>
+                        <td>maxout_pieces</td>
+                        <td>3</td>
+                        <td>Candidats pour activation Maxout</td>
+                    </tr>
+                </table>
+
+                <div class="diagram">
+<pre>Portee effective apres 4 couches:
+
+Couche 1:  [x] voit [-1, 0, +1]       -> portee +-1
+Couche 2:  [x] voit [-2, -1, 0, +1, +2] -> portee +-2
+Couche 3:  [x] voit [-3 ... +3]       -> portee +-3
+Couche 4:  [x] voit [-4 ... +4]       -> portee +-4
+
+"Marseille" peut voir "de" (4 positions avant) !</pre>
+                </div>
+            </section>
+
+            <!-- TransitionBasedParser -->
+            <section id="transition" class="doc-section">
+                <h2>TransitionBasedParser (spaCy)</h2>
+                <p>
+                    Parser NER base sur des transitions. Traite la phrase de gauche a droite, decidant a chaque token l'action a effectuer.
+                </p>
+
+                <h3>Actions disponibles</h3>
+                <table>
+                    <tr>
+                        <th>Action</th>
+                        <th>Effet</th>
+                        <th>Exemple</th>
+                    </tr>
+                    <tr>
+                        <td>OUT</td>
+                        <td>Token hors entite</td>
+                        <td>"de" -> O</td>
+                    </tr>
+                    <tr>
+                        <td>BEGIN</td>
+                        <td>Demarrer nouvelle entite</td>
+                        <td>"Paris" -> B-DEPART</td>
+                    </tr>
+                    <tr>
+                        <td>IN</td>
+                        <td>Continuer entite</td>
+                        <td>"Pierre" -> I-DEPART</td>
+                    </tr>
+                    <tr>
+                        <td>LAST</td>
+                        <td>Terminer entite</td>
+                        <td>"Corps" -> I-DEPART (fin)</td>
+                    </tr>
+                </table>
+
+                <div class="insight">
+                    <div class="insight-title">Avantage</div>
+                    <p>Complexite O(n) : traitement lineaire tres rapide. Limite : ne voit pas le contexte futur (contrairement aux Transformers bidirectionnels).</p>
+                </div>
+            </section>
+
+            <!-- Transformer -->
+            <section id="transformer" class="doc-section">
+                <h2>Architecture Transformer (CamemBERT)</h2>
+                <p>
+                    CamemBERT utilise l'architecture Transformer Encoder-Only avec Self-Attention bidirectionnelle.
+                </p>
+
+                <h3>Self-Attention : chaque mot voit TOUS les autres</h3>
+                <div class="diagram">
+<pre>RNN/LSTM (Sequentiel) :
+"Je" -> "veux" -> "aller" -> "de" -> "Marseille" -> "a" -> "Paris"
+  |        |         |        |          |           |        |
+ [H1] -> [H2]  -> [H3]  -> [H4]  ->    [H5]    -> [H6] -> [H7]
+
+Probleme: "Marseille" ne voit pas encore "Paris"
+
+
+TRANSFORMER (Parallele + Bidirectionnel) :
+"Je"  "veux" "aller" "de" "Marseille" "a" "Paris"
+  |      |      |     |       |        |     |
+  +------+------+-----+-------+--------+-----+
+                      |
+              [SELF-ATTENTION]
+                      |
+  +------+------+-----+-------+--------+-----+
+  |      |      |     |       |        |     |
+"Je"  "veux" "aller" "de" "Marseille" "a" "Paris"
+
+Avantage: "Marseille" voit "de" ET "a Paris" simultanement !</pre>
+                </div>
+
+                <h3>Architecture CamemBERT</h3>
+                <table>
+                    <tr>
+                        <th>Composant</th>
+                        <th>Valeur</th>
+                    </tr>
+                    <tr>
+                        <td>Nombre de couches</td>
+                        <td>12</td>
+                    </tr>
+                    <tr>
+                        <td>Tetes d'attention</td>
+                        <td>12 par couche</td>
+                    </tr>
+                    <tr>
+                        <td>Dimensions</td>
+                        <td>768</td>
+                    </tr>
+                    <tr>
+                        <td>Parametres</td>
+                        <td>~110 millions</td>
+                    </tr>
+                    <tr>
+                        <td>Pre-entrainement</td>
+                        <td>138 Go de texte francais</td>
+                    </tr>
+                </table>
+            </section>
+
+            <!-- Fine-tuning -->
+            <section id="finetuning" class="doc-section">
+                <h2>Fine-tuning CamemBERT</h2>
+                <p>
+                    Le fine-tuning adapte un modele pre-entraine a notre tache specifique (NER pour trajets ferroviaires).
+                </p>
+
+                <h3>Principe du Transfer Learning</h3>
+                <div class="diagram">
+<pre>PRE-ENTRAINEMENT (Masked Language Model sur 138 Go)
++----------------------------------------+
+|  CamemBERT apprend le francais :       |
+|  - Grammaire                           |
+|  - Vocabulaire                         |
+|  - "de [MASK] a Lyon" -> "Paris"       |
++----------------------------------------+
+                    |
+                    v
+FINE-TUNING (sur 10,000 phrases annotees)
++----------------------------------------+
+|  On ajoute une couche de classification|
+|  768 dim -> 7 labels (B-DEP, I-DEP...) |
+|                                        |
+|  Learning rate tres faible (5e-5)      |
+|  pour ne pas "oublier" le francais     |
++----------------------------------------+
+                    |
+                    v
+RESULTAT: 99.67% F1 en quelques epoques !</pre>
+                </div>
+
+                <h3>Configuration d'entrainement</h3>
+                <table>
+                    <tr>
+                        <th>Parametre</th>
+                        <th>Valeur</th>
+                        <th>Raison</th>
+                    </tr>
+                    <tr>
+                        <td>learning_rate</td>
+                        <td>5e-5</td>
+                        <td>Tres faible pour eviter le "catastrophic forgetting"</td>
+                    </tr>
+                    <tr>
+                        <td>warmup_ratio</td>
+                        <td>0.1</td>
+                        <td>10% du temps a monter progressivement le LR</td>
+                    </tr>
+                    <tr>
+                        <td>epochs</td>
+                        <td>5-10</td>
+                        <td>Peu d'epoques car le modele connait deja le francais</td>
+                    </tr>
+                    <tr>
+                        <td>batch_size</td>
+                        <td>16</td>
+                        <td>Equilibre vitesse/stabilite</td>
+                    </tr>
+                </table>
+            </section>
+
+            <!-- Adam Optimizer -->
+            <section id="adam" class="doc-section">
+                <h2>Optimiseur Adam</h2>
+                <p>
+                    Adam combine deux techniques pour un entrainement stable : momentum et learning rate adaptatif.
+                </p>
+
+                <h3>Mecanismes</h3>
+                <table>
+                    <tr>
+                        <th>Mecanisme</th>
+                        <th>Parametre</th>
+                        <th>Effet</th>
+                    </tr>
+                    <tr>
+                        <td>Momentum</td>
+                        <td>beta1 = 0.9</td>
+                        <td>Lisse les oscillations du gradient</td>
+                    </tr>
+                    <tr>
+                        <td>Learning rate adaptatif</td>
+                        <td>beta2 = 0.999</td>
+                        <td>Ajuste le LR par parametre</td>
+                    </tr>
+                    <tr>
+                        <td>Weight decay</td>
+                        <td>L2 = 0.01</td>
+                        <td>Penalise les poids trop grands (regularisation)</td>
+                    </tr>
+                    <tr>
+                        <td>Gradient clipping</td>
+                        <td>1.0</td>
+                        <td>Limite l'explosion des gradients</td>
+                    </tr>
+                </table>
+            </section>
+
+            <!-- Warmup -->
+            <section id="warmup" class="doc-section">
+                <h2>Warmup du Learning Rate</h2>
+                <p>
+                    Le warmup augmente progressivement le learning rate de 0 a sa valeur cible pendant les premiers steps.
+                </p>
+
+                <h3>Pourquoi c'est necessaire ?</h3>
+                <div class="diagram">
+<pre>SANS WARMUP:
++------------------+
+| Classification   | <- Poids ALEATOIRES
+| Head (768->7)    |
++------------------+
+        ^
+        |
++------------------+
+| CamemBERT        | <- Poids PRE-ENTRAINES
+| (110M params)    |
++------------------+
+
+Probleme: Gradients calcules sur une couche aleatoire
+-> Mises a jour DESTRUCTRICES du CamemBERT
+
+
+AVEC WARMUP:
+LR = 0 -> 1e-6 -> 1e-5 -> ... -> 5e-5 (progressif)
+
+La classification head a le temps de s'ajuster
+AVANT que le CamemBERT soit modifie significativement</pre>
+                </div>
+
+                <div class="insight">
+                    <div class="insight-title">Configuration</div>
+                    <p>warmup_ratio = 0.1 : 10% du temps d'entrainement est en warmup</p>
+                    <p>Pour 5000 steps total = 500 steps de warmup</p>
+                </div>
+            </section>
+
+            <!-- Dropout -->
+            <section id="dropout" class="doc-section">
+                <h2>Dropout</h2>
+                <p>
+                    Le Dropout desactive aleatoirement un pourcentage de neurones pendant l'entrainement pour eviter le sur-apprentissage.
+                </p>
+
+                <h3>Fonctionnement</h3>
+                <div class="diagram">
+<pre>ENTRAINEMENT (dropout = 0.1):
++---+---+---+---+---+---+---+---+---+---+
+| o | o | X | o | o | X | o | o | o | X |  <- 10% eteints
++---+---+---+---+---+---+---+---+---+---+
+
+Le reseau doit apprendre avec des neurones "manquants"
+-> Force la REDONDANCE et la GENERALISATION
+
+
+INFERENCE (dropout = 0):
++---+---+---+---+---+---+---+---+---+---+
+| o | o | o | o | o | o | o | o | o | o |  <- Tous actifs
++---+---+---+---+---+---+---+---+---+---+
+
+A l'inference, on utilise 100% des neurones</pre>
+                </div>
+
+                <div class="insight">
+                    <div class="insight-title">Effet</div>
+                    <p>Sacrifie legerement la performance sur le train set pour GAGNER en generalisation sur le test set.</p>
+                </div>
+            </section>
+
+            <!-- Early Stopping -->
+            <section id="earlystop" class="doc-section">
+                <h2>Early Stopping</h2>
+                <p>
+                    Arrete l'entrainement quand la performance sur la validation cesse de s'ameliorer, evitant le sur-apprentissage.
+                </p>
+
+                <h3>Les 3 phases d'entrainement</h3>
+                <div class="diagram">
+<pre>Loss
+  |
+  |  Phase 1         Phase 2          Phase 3
+  |  APPRENTISSAGE   OPTIMAL          SUR-APPRENTISSAGE
+  |
+  |  \.
+  |   \.  Train
+  |    \. . . . . . . . . . . . . . . . . . .
+  |     \.          ___________________
+  |      \._______./   Validation      \
+  |                                     \.
+  |                   ^                  \.
+  |                   |
+  |              ARRETER ICI !
+  +-------------------------------------------------> Steps</pre>
+                </div>
+
+                <h3>Configuration</h3>
+                <table>
+                    <tr>
+                        <th>Parametre</th>
+                        <th>Valeur</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>Metrique surveillee</td>
+                        <td>F1 macro</td>
+                        <td>Performance sur validation</td>
+                    </tr>
+                    <tr>
+                        <td>patience</td>
+                        <td>3</td>
+                        <td>Arret apres 3 evals sans amelioration</td>
+                    </tr>
+                    <tr>
+                        <td>load_best_model_at_end</td>
+                        <td>True</td>
+                        <td>Recharge le meilleur checkpoint</td>
+                    </tr>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Highlight active section on scroll
+        const sections = document.querySelectorAll('.doc-section');
+        const links = document.querySelectorAll('.sidebar-link');
+
+        function updateActiveLink() {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            links.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', updateActiveLink);
+
+        // Smooth scroll for sidebar links
+        links.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = document.querySelector(link.getAttribute('href'));
+                target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+</html>
