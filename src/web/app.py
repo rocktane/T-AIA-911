@@ -8,8 +8,8 @@ import csv
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, Form, Request, Query
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Form, Request, Query, HTTPException
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -36,6 +36,7 @@ CONNECTIONS_FILE = DATA_DIR / "connexions.csv"
 CITIES_FILE = DATA_DIR / "communes-france.csv"
 SPACY_MODEL_PATH = MODELS_DIR / "spacy-ner" / "model-best"
 CAMEMBERT_MODEL_PATH = MODELS_DIR / "camembert-ner"
+EXPLICATIONS_DIR = Path(__file__).parent.parent.parent / "explications"
 
 # Initialize FastAPI
 app = FastAPI(
@@ -237,6 +238,32 @@ async def index(request: Request):
             "camembert_available": ner_camembert is not None,
         },
     )
+
+
+@app.get("/docs", response_class=HTMLResponse)
+async def docs_page(request: Request):
+    """Render documentation page (SPA - same template as index)."""
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "spacy_available": ner_spacy is not None,
+            "camembert_available": ner_camembert is not None,
+        },
+    )
+
+
+@app.get("/api/docs/{term}", response_class=PlainTextResponse)
+async def get_doc_content(term: str):
+    """Get markdown content for a documentation term."""
+    # Sanitize term to prevent path traversal
+    safe_term = term.replace("..", "").replace("/", "").replace("\\", "")
+    file_path = EXPLICATIONS_DIR / f"{safe_term}.md"
+
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    return file_path.read_text(encoding="utf-8")
 
 
 @app.post("/", response_class=HTMLResponse)

@@ -28,6 +28,27 @@
             justify-content: center;
             padding-top: 20px;
         }
+
+        /* Docs button */
+        .docs-btn {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            padding: 8px 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #000;
+            background: #fff;
+            border: 1px solid #000;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+        .docs-btn:hover {
+            background: #000;
+            color: #fff;
+        }
+
         .container {
             width: 100%;
             max-width: 900px;
@@ -585,9 +606,175 @@
             padding: 20px;
             text-align: center;
         }
+
+        /* Documentation page styles */
+        .docs-page {
+            display: none;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: left;
+        }
+        .docs-page.visible {
+            display: block;
+        }
+        .docs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #000;
+        }
+        .docs-title {
+            font-size: 1.2rem;
+            font-weight: normal;
+            letter-spacing: 2px;
+        }
+        .back-btn {
+            padding: 8px 16px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            color: #000;
+            background: #fff;
+            border: 1px solid #000;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .back-btn:hover {
+            background: #000;
+            color: #fff;
+        }
+        .category {
+            margin-bottom: 30px;
+        }
+        .category-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #666;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .terms-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .term-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .term-item:hover {
+            border-color: #000;
+            background: #f8f8f8;
+        }
+        .term-item.active {
+            border-color: #000;
+            background: #f0f0f0;
+        }
+        .term-name {
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+        .term-arrow {
+            color: #999;
+            transition: transform 0.2s ease;
+        }
+        .term-item.active .term-arrow {
+            transform: rotate(90deg);
+        }
+        .term-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #000;
+            border-top: none;
+            background: #fafafa;
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+        .term-content.visible {
+            display: block;
+        }
+        .term-content h1, .term-content h2 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+        .term-content h3 {
+            font-size: 0.95rem;
+            margin: 20px 0 10px;
+        }
+        .term-content p {
+            margin-bottom: 12px;
+        }
+        .term-content ul, .term-content ol {
+            margin: 10px 0 10px 20px;
+        }
+        .term-content li {
+            margin-bottom: 5px;
+        }
+        .term-content pre {
+            background: #f5f5f5;
+            color: #000;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            border: 1px solid #ddd;
+        }
+        .term-content code {
+            background: #f0f0f0;
+            padding: 2px 5px;
+            font-size: 0.9em;
+        }
+        .term-content pre code {
+            background: none;
+            padding: 0;
+        }
+        .term-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.85rem;
+        }
+        .term-content th, .term-content td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .term-content th {
+            background: #f0f0f0;
+        }
+        .term-content hr {
+            border: none;
+            border-top: 1px solid #ddd;
+            margin: 20px 0;
+        }
+
+        /* Hide main app when docs visible */
+        body.docs-visible .container,
+        body.docs-visible .voice-loading {
+            display: none;
+        }
+        body.docs-visible .docs-btn {
+            display: none;
+        }
+        body.docs-visible {
+            justify-content: flex-start;
+            padding-top: 40px;
+        }
     </style>
 </head>
 <body class="centered model-loading">
+    <a href="/docs" class="docs-btn">Docs</a>
     <div class="container">
         <h1>TRAVEL ORDER RESOLVER</h1>
 
@@ -658,6 +845,78 @@
         </div>
         <div class="voice-loading-percent" id="voice-loading-percent">0%</div>
     </div>
+
+    <!-- Documentation page (SPA) -->
+    <div class="docs-page" id="docs-page">
+        <header class="docs-header">
+            <h1 class="docs-title">DOCUMENTATION</h1>
+            <button class="back-btn" id="back-btn">Retour</button>
+        </header>
+
+        <div class="category">
+            <div class="category-title">Concepts fondamentaux</div>
+            <div class="terms-list">
+                <div class="term-item" data-term="pourquoi_ces_modeles"><span class="term-name">Pourquoi spaCy et CamemBERT ?</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="pourquoi_ces_modeles"></div>
+                <div class="term-item" data-term="Schema_BIO"><span class="term-name">Schema BIO</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="Schema_BIO"></div>
+                <div class="term-item" data-term="Tokenization_BPE"><span class="term-name">Tokenization BPE</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="Tokenization_BPE"></div>
+                <div class="term-item" data-term="Metriques_NER"><span class="term-name">Metriques NER</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="Metriques_NER"></div>
+                <div class="term-item" data-term="F1Score"><span class="term-name">F1-Score</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="F1Score"></div>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">Architecture spaCy</div>
+            <div class="terms-list">
+                <div class="term-item" data-term="entrainement_spacy"><span class="term-name">Entrainement spaCy</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="entrainement_spacy"></div>
+                <div class="term-item" data-term="Tok2Vec"><span class="term-name">Tok2Vec</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="Tok2Vec"></div>
+                <div class="term-item" data-term="Tok2VecListener"><span class="term-name">Tok2VecListener</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="Tok2VecListener"></div>
+                <div class="term-item" data-term="MultiHashEmbed"><span class="term-name">MultiHashEmbed</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="MultiHashEmbed"></div>
+                <div class="term-item" data-term="MaxoutWindowEncoder"><span class="term-name">MaxoutWindowEncoder</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="MaxoutWindowEncoder"></div>
+                <div class="term-item" data-term="TransitionBasedParser"><span class="term-name">TransitionBasedParser</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="TransitionBasedParser"></div>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">Architecture CamemBERT</div>
+            <div class="terms-list">
+                <div class="term-item" data-term="entrainement_camembert"><span class="term-name">Entrainement CamemBERT</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="entrainement_camembert"></div>
+                <div class="term-item" data-term="Transformer"><span class="term-name">Transformer</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="Transformer"></div>
+                <div class="term-item" data-term="Fine_tuning"><span class="term-name">Fine-tuning</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="Fine_tuning"></div>
+            </div>
+        </div>
+
+        <div class="category">
+            <div class="category-title">Techniques d'entrainement</div>
+            <div class="terms-list">
+                <div class="term-item" data-term="AdamOptimizer"><span class="term-name">Optimiseur Adam</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="AdamOptimizer"></div>
+                <div class="term-item" data-term="Warmup"><span class="term-name">Warmup</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="Warmup"></div>
+                <div class="term-item" data-term="Dropout"><span class="term-name">Dropout</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="Dropout"></div>
+                <div class="term-item" data-term="EarlyStopping"><span class="term-name">Early Stopping</span><span class="term-arrow">&#9654;</span></div>
+                <div class="term-content" id="EarlyStopping"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Markdown libs -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 
     <script type="module">
         // Whisper.js import
@@ -1532,61 +1791,152 @@
             return true;
         }
 
+        // === Documentation SPA ===
+        const docsPage = document.getElementById('docs-page');
+        const docsBtn = document.querySelector('.docs-btn');
+        const backBtn = document.getElementById('back-btn');
+        const termItems = document.querySelectorAll('.term-item');
+        const docsCache = {};
+
+        async function loadMarkdown(term) {
+            if (docsCache[term]) return docsCache[term];
+            try {
+                const response = await fetch(`/api/docs/${term}`);
+                if (!response.ok) throw new Error('Not found');
+                const text = await response.text();
+                docsCache[term] = text;
+                return text;
+            } catch (e) {
+                return `Contenu non disponible.`;
+            }
+        }
+
+        function renderMarkdownSafe(container, markdown) {
+            // Uses DOMPurify to sanitize HTML before rendering
+            const html = marked.parse(markdown);
+            const sanitized = DOMPurify.sanitize(html);
+            container.innerHTML = sanitized;
+        }
+
+        function showDocs() {
+            document.body.classList.add('docs-visible');
+            docsPage.classList.add('visible');
+            history.pushState({ page: 'docs' }, '', '/docs');
+            document.title = 'Documentation - Travel Order Resolver';
+            window.scrollTo(0, 0);
+        }
+
+        function hideDocs() {
+            document.body.classList.remove('docs-visible');
+            docsPage.classList.remove('visible');
+            history.pushState({ page: 'home' }, '', '/');
+            document.title = 'Travel Order Resolver';
+            setTimeout(() => sentenceInput.focus(), 100);
+        }
+
+        function initDocs() {
+            docsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showDocs();
+            });
+
+            backBtn.addEventListener('click', () => {
+                hideDocs();
+            });
+
+            termItems.forEach(item => {
+                item.addEventListener('click', async () => {
+                    const term = item.dataset.term;
+                    const content = document.getElementById(term);
+                    const isActive = item.classList.contains('active');
+
+                    termItems.forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.term-content').forEach(c => c.classList.remove('visible'));
+
+                    if (!isActive) {
+                        item.classList.add('active');
+                        content.classList.add('visible');
+
+                        if (!content.dataset.loaded) {
+                            content.textContent = 'Chargement...';
+                            const markdown = await loadMarkdown(term);
+                            renderMarkdownSafe(content, markdown);
+                            content.dataset.loaded = 'true';
+                        }
+                    }
+                });
+            });
+
+            window.addEventListener('popstate', (e) => {
+                if (e.state && e.state.page === 'docs') {
+                    document.body.classList.add('docs-visible');
+                    docsPage.classList.add('visible');
+                    document.title = 'Documentation - Travel Order Resolver';
+                } else {
+                    document.body.classList.remove('docs-visible');
+                    docsPage.classList.remove('visible');
+                    document.title = 'Travel Order Resolver';
+                }
+            });
+
+            if (window.location.pathname === '/docs') {
+                showDocs();
+            }
+        }
+
         // Initialize
         function init() {
-            // Set up event listeners
             tabs.forEach(tab => tab.addEventListener('click', handleTabClick));
             sentenceInput.addEventListener('keydown', handleInputKeydown);
             sentenceInput.addEventListener('keyup', handleInputKeyup);
 
-            // Initialize voice recognition
             if (checkVoiceSupport()) {
                 micBtn.addEventListener('click', toggleRecording);
-                // Load Whisper model at startup
                 initWhisper().catch(err => {
                     console.error('Failed to load Whisper:', err);
                 });
             }
 
-            // Initialize slider position
             setTimeout(updateSlider, 0);
             window.addEventListener('resize', updateSlider);
             window.addEventListener('blur', handleWindowBlur);
 
-            // Keep focus on input at all times
             document.addEventListener('mousedown', (e) => {
-                // Allow default only for the input itself
+                if (document.body.classList.contains('docs-visible')) return;
                 if (e.target !== sentenceInput) {
                     e.preventDefault();
                     keepFocusOnInput();
                 }
             });
-            sentenceInput.addEventListener('blur', keepFocusOnInput);
-
-            // Ensure focus on input (some browsers ignore autofocus)
-            sentenceInput.focus();
-
-            // Check for query params and auto-search
-            const params = getQueryParams();
-            if (params.sentence) {
-                sentenceInput.value = params.sentence;
-
-                // Set model from URL if valid
-                const modelTab = document.querySelector(`.tab[data-model="${params.model}"]`);
-                if (modelTab && !modelTab.disabled) {
-                    tabs.forEach(t => t.classList.remove('active'));
-                    modelTab.classList.add('active');
-                    state.currentModel = params.model;
-                    setTimeout(updateSlider, 0);
+            sentenceInput.addEventListener('blur', () => {
+                if (!document.body.classList.contains('docs-visible')) {
+                    keepFocusOnInput();
                 }
+            });
 
-                // Auto-run search
-                state.currentSentence = params.sentence;
-                runSearch(state.currentModel);
-            } else {
-                // Show centered empty state initially
-                resultsArea.innerHTML = '';
-                document.body.classList.add('centered');
+            initDocs();
+
+            if (window.location.pathname !== '/docs') {
+                sentenceInput.focus();
+
+                const params = getQueryParams();
+                if (params.sentence) {
+                    sentenceInput.value = params.sentence;
+
+                    const modelTab = document.querySelector(`.tab[data-model="${params.model}"]`);
+                    if (modelTab && !modelTab.disabled) {
+                        tabs.forEach(t => t.classList.remove('active'));
+                        modelTab.classList.add('active');
+                        state.currentModel = params.model;
+                        setTimeout(updateSlider, 0);
+                    }
+
+                    state.currentSentence = params.sentence;
+                    runSearch(state.currentModel);
+                } else {
+                    resultsArea.innerHTML = '';
+                    document.body.classList.add('centered');
+                }
             }
         }
 
