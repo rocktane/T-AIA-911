@@ -242,11 +242,13 @@ async def index(request: Request):
 
 @app.get("/docs", response_class=HTMLResponse)
 async def docs_page(request: Request):
-    """Render documentation page."""
+    """Render documentation page (SPA - same template as index)."""
     return templates.TemplateResponse(
-        "docs.html",
+        "index.html",
         {
             "request": request,
+            "spacy_available": ner_spacy is not None,
+            "camembert_available": ner_camembert is not None,
         },
     )
 
