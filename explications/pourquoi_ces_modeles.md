@@ -1,0 +1,593 @@
+# Pourquoi spaCy et CamemBERT plutot que des LLMs generalistes ?
+
+## Introduction
+
+Pour notre tache d'extraction de trajets ferroviaires, nous avons choisi **spaCy** et **CamemBERT** plutot que des LLMs generalistes comme **Qwen**, **Llama**, **Mistral** ou **GPT**. Cette page explique les differences fondamentales entre ces types de modeles et pourquoi notre choix est optimal.
+
+---
+
+## 1. Deux familles de modeles tres differentes
+
+### Tableau comparatif
+
+| Caracteristique | Modeles NER (spaCy, CamemBERT) | LLMs generalistes (Qwen, Llama, GPT) |
+|-----------------|-------------------------------|-------------------------------------|
+| **Tache** | Classification de tokens | Generation de texte |
+| **Sortie** | Labels structures (B-DEPART, I-ARRIVEE...) | Texte libre |
+| **Taille** | 100 Mo - 500 Mo | 4 Go - 70+ Go |
+| **Latence** | 1-10 ms par phrase | 100-2000 ms par phrase |
+| **Deploiement** | CPU suffit | GPU recommande/requis |
+| **Determinisme** | 100% deterministe | Variable (temperature) |
+| **Entrainement** | Fine-tuning rapide (minutes/heures) | Fine-tuning couteux (heures/jours) |
+
+### Architecture fondamentale
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    MODELES NER (spaCy, CamemBERT)                        │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Entree: "Je veux aller de Paris a Lyon"                                 │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │                    ENCODEUR (Transformer/CNN)                    │     │
+│  │  Chaque token → vecteur contextuel                               │     │
+│  └─────────────────────────────────────────────────────────────────┘     │
+│                              │                                           │
+│                              ▼                                           │
+│  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │                    CLASSIFICATEUR (Linear + Softmax)             │     │
+│  │  Chaque vecteur → probabilite par label                          │     │
+│  └─────────────────────────────────────────────────────────────────┘     │
+│                              │                                           │
+│                              ▼                                           │
+│  Sortie: [O, O, O, O, B-DEP, O, B-ARR]                                   │
+│          Je veux aller de Paris a Lyon                                   │
+│                                                                          │
+│  → SORTIE STRUCTUREE, DETERMINISTE, RAPIDE                               │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    LLMs GENERALISTES (Qwen, Llama, GPT)                  │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Entree: "Extrait le depart et l'arrivee: Je veux aller de Paris a Lyon" │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │                    ENCODEUR (Transformer)                        │     │
+│  │  Contexte complet → representation                               │     │
+│  └─────────────────────────────────────────────────────────────────┘     │
+│                              │                                           │
+│                              ▼                                           │
+│  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │                    DECODEUR AUTOREGRESSIF                        │     │
+│  │  Generation token par token                                      │     │
+│  │  "Depart" → ":" → " " → "Paris" → "\n" → "Arrivee" → ...         │     │
+│  └─────────────────────────────────────────────────────────────────┘     │
+│                              │                                           │
+│                              ▼                                           │
+│  Sortie: "Depart: Paris\nArrivee: Lyon"                                  │
+│          (texte libre, necessite parsing)                                │
+│                                                                          │
+│  → SORTIE NON-STRUCTUREE, VARIABLE, LENTE                                │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. Pourquoi les LLMs ne sont PAS adaptes a notre tache
+
+### Probleme 1 : Generation vs Classification
+
+Les LLMs sont concus pour **generer du texte**, pas pour **classifier des tokens**.
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                     LE PROBLEME DE LA GENERATION                         │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Notre besoin :                                                          │
+│  ─────────────                                                           │
+│  Entree:  "Je veux aller de Paris a Lyon"                                │
+│  Sortie:  {"departure": "Paris", "arrival": "Lyon"}  ← structure fixe    │
+│                                                                          │
+│  Ce que fait un LLM :                                                    │
+│  ───────────────────                                                     │
+│  Prompt:  "Extrait depart et arrivee de: Je veux aller de Paris a Lyon"  │
+│                                                                          │
+│  Reponse possible 1: "Depart: Paris, Arrivee: Lyon"                      │
+│  Reponse possible 2: "Le depart est Paris et l'arrivee Lyon"             │
+│  Reponse possible 3: "Paris → Lyon"                                      │
+│  Reponse possible 4: "departure=Paris, arrival=Lyon"                     │
+│  Reponse possible 5: "La personne veut aller de Paris a Lyon..."         │
+│                                                                          │
+│  → Necessite un PARSING complexe et fragile pour extraire les valeurs    │
+│  → Format IMPREVISIBLE meme avec des instructions precises               │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Probleme 2 : Latence inacceptable
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        COMPARAISON DE LATENCE                            │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Pour traiter 1000 phrases :                                             │
+│                                                                          │
+│  ┌────────────────────────────────────────────────────────────────┐      │
+│  │ spaCy (CPU)        │ ~2 secondes      │ ████                   │      │
+│  ├────────────────────────────────────────────────────────────────┤      │
+│  │ CamemBERT (GPU)    │ ~10 secondes     │ ████████████           │      │
+│  ├────────────────────────────────────────────────────────────────┤      │
+│  │ CamemBERT (CPU)    │ ~60 secondes     │ ████████████████████   │      │
+│  ├────────────────────────────────────────────────────────────────┤      │
+│  │ Llama 7B (GPU)     │ ~500 secondes    │ ████████████████████   │      │
+│  │                    │                  │ ████████████████████   │      │
+│  │                    │                  │ ████████████████████   │      │
+│  ├────────────────────────────────────────────────────────────────┤      │
+│  │ Qwen 72B (GPU)     │ ~2000 secondes   │ ████████████████████   │      │
+│  │                    │                  │ (... hors echelle)     │      │
+│  └────────────────────────────────────────────────────────────────┘      │
+│                                                                          │
+│  Facteur : LLM est 50-1000x plus lent qu'un modele NER dedie             │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+**Pourquoi cette difference ?**
+
+| Modele NER | LLM |
+|------------|-----|
+| 1 passe forward | N passes forward (1 par token genere) |
+| Sortie : K labels | Sortie : M tokens generes |
+| K = nombre de tokens entree | M = longueur reponse (~20-50 tokens) |
+
+### Probleme 3 : Ressources materielles
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                      RESSOURCES REQUISES                                 │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Modele              RAM/VRAM        CPU/GPU          Cout cloud/h       │
+│  ───────────────────────────────────────────────────────────────────     │
+│  spaCy custom        ~200 Mo         CPU suffit       ~0.05€             │
+│  CamemBERT           ~500 Mo         CPU ok, GPU+     ~0.10€             │
+│  Llama 7B            ~14 Go          GPU requis       ~0.50€             │
+│  Llama 70B           ~140 Go         Multi-GPU        ~5.00€             │
+│  Qwen 72B            ~150 Go         Multi-GPU        ~5.00€             │
+│  GPT-4 (API)         N/A             API externe      ~0.03€/requete     │
+│                                                                          │
+│  Pour 10,000 requetes/jour :                                             │
+│  - spaCy : ~0€ (tourne sur n'importe quel serveur)                       │
+│  - Llama 70B : ~50€/jour en cloud GPU                                    │
+│  - GPT-4 API : ~300€/jour                                                │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Probleme 4 : Non-determinisme
+
+```python
+# Avec un LLM (temperature > 0), la meme entree peut donner des sorties differentes :
+
+prompt = "Extrait depart et arrivee: Je veux aller de Paris a Lyon"
+
+# Execution 1
+response_1 = llm(prompt)  # "Depart: Paris, Arrivee: Lyon"
+
+# Execution 2 (meme prompt !)
+response_2 = llm(prompt)  # "Le trajet part de Paris vers Lyon"
+
+# Execution 3
+response_3 = llm(prompt)  # "Paris est le point de depart, Lyon la destination"
+
+# → Impossible de garantir un format de sortie stable !
+```
+
+Avec spaCy ou CamemBERT :
+
+```python
+# Toujours deterministe
+result_1 = model.extract("Je veux aller de Paris a Lyon")  # ("Paris", "Lyon")
+result_2 = model.extract("Je veux aller de Paris a Lyon")  # ("Paris", "Lyon")
+result_3 = model.extract("Je veux aller de Paris a Lyon")  # ("Paris", "Lyon")
+# → 100% reproductible
+```
+
+### Probleme 5 : Hallucinations
+
+Les LLMs peuvent **inventer** des informations :
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                         RISQUE D'HALLUCINATION                           │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Entree: "Je veux visiter le musee du Louvre"                            │
+│  (Pas de trajet ! Phrase invalide pour notre systeme)                    │
+│                                                                          │
+│  Reponse attendue: INVALID (pas de depart/arrivee)                       │
+│                                                                          │
+│  Reponse possible d'un LLM:                                              │
+│  "Depart: Paris, Arrivee: Musee du Louvre"                               │
+│  → HALLUCINATION ! Le LLM "invente" un depart                            │
+│                                                                          │
+│  Autre exemple:                                                          │
+│  Entree: "Train de nuit"                                                 │
+│  Reponse LLM: "Depart: Paris, Arrivee: Nice"                             │
+│  → HALLUCINATION ! Aucune ville n'etait mentionnee                       │
+│                                                                          │
+│  Un modele NER classifie uniquement ce qui existe dans le texte.         │
+│  Il ne peut PAS inventer d'entites.                                      │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. Pourquoi spaCy est adapte
+
+### Architecture tok2vec + NER
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    ARCHITECTURE SPACY POUR NER                           │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Entree: "Je veux aller de Paris a Lyon"                                 │
+│           │   │     │    │   │    │  │                                   │
+│           ▼   ▼     ▼    ▼   ▼    ▼  ▼                                   │
+│  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │                   TOKENIZER                                      │     │
+│  │  Decoupe en tokens, normalise                                    │     │
+│  └─────────────────────────────────────────────────────────────────┘     │
+│           │   │     │    │   │    │  │                                   │
+│           ▼   ▼     ▼    ▼   ▼    ▼  ▼                                   │
+│  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │                   TOK2VEC (MultiHashEmbed + MaxoutWindowEncoder) │     │
+│  │  Token → Vecteur contextuel (96 dimensions)                      │     │
+│  │                                                                  │     │
+│  │  NORM:   forme normalisee du mot                                 │     │
+│  │  PREFIX: 3 premiers caracteres                                   │     │
+│  │  SUFFIX: 3 derniers caracteres                                   │     │
+│  │  SHAPE:  forme abstraite (Xxxx, dddd, etc.)                      │     │
+│  └─────────────────────────────────────────────────────────────────┘     │
+│           │   │     │    │   │    │  │                                   │
+│           ▼   ▼     ▼    ▼   ▼    ▼  ▼                                   │
+│  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │                   TRANSITION-BASED PARSER                        │     │
+│  │  Vecteur → Label BIO (O, B-DEPART, I-DEPART, B-ARRIVEE...)       │     │
+│  └─────────────────────────────────────────────────────────────────┘     │
+│           │   │     │    │   │    │  │                                   │
+│           ▼   ▼     ▼    ▼   ▼    ▼  ▼                                   │
+│  Sortie: [O,  O,    O,   O,  B-D, O, B-A]                                │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Avantages de spaCy
+
+| Avantage | Explication |
+|----------|-------------|
+| **Leger** | ~100 Mo, tourne sur CPU |
+| **Rapide** | ~1000 phrases/seconde |
+| **Deterministe** | Meme entree = meme sortie |
+| **Fine-tunable** | Entrainement en quelques minutes |
+| **Production-ready** | Pipeline robuste, bien documente |
+
+---
+
+## 4. Pourquoi CamemBERT est adapte
+
+### Difference avec un LLM
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│              CAMEMBERT vs LLM : ARCHITECTURE                             │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  CamemBERT (BERT-like)              LLM (GPT-like)                       │
+│  ─────────────────────              ────────────────                     │
+│                                                                          │
+│  ┌─────────────────────┐            ┌─────────────────────┐              │
+│  │ ENCODEUR SEULEMENT  │            │ ENCODEUR + DECODEUR │              │
+│  │                     │            │                     │              │
+│  │ Bidirectionnel:     │            │ Autoregressif:      │              │
+│  │ ← contexte gauche   │            │ ← contexte gauche   │              │
+│  │   contexte droit →  │            │   seulement         │              │
+│  │                     │            │                     │              │
+│  │ Sortie: vecteurs    │            │ Sortie: tokens      │              │
+│  │ par token           │            │ generes un a un     │              │
+│  └─────────────────────┘            └─────────────────────┘              │
+│                                                                          │
+│  Tache: Classification              Tache: Generation                    │
+│  de tokens                          de texte                             │
+│                                                                          │
+│  "Quel label pour                   "Quel est le                         │
+│   ce token ?"                        prochain mot ?"                     │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### CamemBERT : Le bon outil pour NER
+
+CamemBERT est un **modele d'encodage** (comme BERT), pas un modele de generation :
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                   CAMEMBERT POUR TOKEN CLASSIFICATION                    │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Pre-entrainement (sur 138 Go de texte francais):                        │
+│  ─────────────────────────────────────────────────                       │
+│  Tache: Masked Language Modeling (MLM)                                   │
+│  "Je veux aller de [MASK] a Lyon" → predire "Paris"                      │
+│                                                                          │
+│  → Le modele apprend les representations contextuelles du francais       │
+│  → Il "connait" les noms de villes, leur contexte d'usage                │
+│                                                                          │
+│  Fine-tuning (sur notre dataset de 10K phrases):                         │
+│  ────────────────────────────────────────────────                        │
+│  Tache: Token Classification (NER)                                       │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │ CamemBERT Encoder (768 dim)                                      │     │
+│  │ [CLS] Je veux aller de Paris a Lyon [SEP]                        │     │
+│  │   │   │   │    │    │   │    │  │    │                           │     │
+│  │   ▼   ▼   ▼    ▼    ▼   ▼    ▼  ▼    ▼                           │     │
+│  │ [h0] [h1] [h2] [h3] [h4] [h5] [h6][h7] [h8]  (vecteurs 768-dim)  │     │
+│  └─────────────────────────────────────────────────────────────────┘     │
+│                              │                                           │
+│                              ▼                                           │
+│  ┌─────────────────────────────────────────────────────────────────┐     │
+│  │ Classification Head (768 → 7 labels)                             │     │
+│  │ Linear + Softmax                                                 │     │
+│  └─────────────────────────────────────────────────────────────────┘     │
+│                              │                                           │
+│                              ▼                                           │
+│  Sortie: [O, O, O, O, O, B-DEP, O, B-ARR, O]                             │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Avantages de CamemBERT pour NER
+
+| Avantage | Explication |
+|----------|-------------|
+| **Bidirectionnel** | Voit le contexte gauche ET droit simultanement |
+| **Pre-entraine sur le francais** | Connait deja les villes, la syntaxe |
+| **Taille raisonnable** | ~440 Mo (vs 14+ Go pour un LLM) |
+| **Fine-tuning efficace** | Quelques heures sur GPU, minutes sur TPU |
+| **Sortie structuree** | Labels par token, pas de parsing necessaire |
+
+---
+
+## 5. Comparaison directe sur notre tache
+
+### Scenario : Extraire depart/arrivee de "Je pars de Bordeaux pour aller a Toulouse"
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    SPACY (notre modele custom)                           │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Entree: "Je pars de Bordeaux pour aller a Toulouse"                     │
+│                                                                          │
+│  Traitement:                                                             │
+│  1. Tokenization           (0.1 ms)                                      │
+│  2. Tok2Vec                (0.5 ms)                                      │
+│  3. NER (classification)   (0.4 ms)                                      │
+│  ────────────────────────────────                                        │
+│  Total:                    ~1 ms                                         │
+│                                                                          │
+│  Sortie: [("Bordeaux", "DEPART"), ("Toulouse", "ARRIVEE")]               │
+│                                                                          │
+│  ✓ Rapide                                                                │
+│  ✓ Structure fixe                                                        │
+│  ✓ Deterministe                                                          │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    CAMEMBERT (notre modele fine-tune)                    │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Entree: "Je pars de Bordeaux pour aller a Toulouse"                     │
+│                                                                          │
+│  Traitement:                                                             │
+│  1. Tokenization BPE       (0.5 ms)                                      │
+│  2. Encodeur Transformer   (15 ms GPU / 150 ms CPU)                      │
+│  3. Classification head    (0.5 ms)                                      │
+│  ────────────────────────────────                                        │
+│  Total:                    ~16 ms GPU / ~151 ms CPU                      │
+│                                                                          │
+│  Sortie: [("Bordeaux", "DEPART"), ("Toulouse", "ARRIVEE")]               │
+│                                                                          │
+│  ✓ Tres precis (99% F1)                                                  │
+│  ✓ Structure fixe                                                        │
+│  ✓ Deterministe                                                          │
+│  ✓ Gere les cas difficiles (ordre inverse, ambiguite)                    │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    LLM (Llama, Qwen, Mistral...)                         │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Prompt:                                                                 │
+│  "Extrait le depart et l'arrivee de cette phrase.                        │
+│   Reponds au format JSON: {\"depart\": \"...\", \"arrivee\": \"...\"}    │
+│   Phrase: Je pars de Bordeaux pour aller a Toulouse"                     │
+│                                                                          │
+│  Traitement:                                                             │
+│  1. Tokenization           (1 ms)                                        │
+│  2. Encodage prompt        (50 ms)                                       │
+│  3. Generation (~30 tokens)(500-2000 ms)                                 │
+│  ────────────────────────────────                                        │
+│  Total:                    ~500-2000 ms                                  │
+│                                                                          │
+│  Sortie possible 1: {"depart": "Bordeaux", "arrivee": "Toulouse"}        │
+│  Sortie possible 2: "Le depart est Bordeaux, l'arrivee est Toulouse"     │
+│  Sortie possible 3: {"departure": "Bordeaux", "arrival": "Toulouse"}     │
+│  Sortie possible 4: "```json\n{\"depart\": ...}\n```"                    │
+│                                                                          │
+│  ✗ Lent (500-2000x plus lent que spaCy)                                  │
+│  ✗ Format imprevisible (necessite parsing robuste)                       │
+│  ✗ Non-deterministe (temperature)                                        │
+│  ✗ Risque d'hallucination                                                │
+│  ✗ Cout eleve (GPU requis ou API payante)                                │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 6. Quand utiliser un LLM ?
+
+Les LLMs seraient pertinents pour des taches **differentes** :
+
+| Tache | Modele adapte | Raison |
+|-------|---------------|--------|
+| Extraction de trajets (NER) | **spaCy/CamemBERT** | Classification de tokens, structure fixe |
+| Chatbot de reservation | **LLM** | Dialogue naturel, comprehension d'intentions variees |
+| Resume de texte | **LLM** | Generation de texte libre |
+| Traduction | **LLM** | Generation dans une autre langue |
+| Questions/Reponses ouvertes | **LLM** | Raisonnement, synthese d'information |
+
+### Exemple ou un LLM serait mieux
+
+```
+Tache: "Assiste l'utilisateur pour reserver un billet de train"
+
+Utilisateur: "Je voudrais aller a Lyon la semaine prochaine,
+              c'est possible en partant tot le matin ?"
+
+LLM: "Bien sur ! Pour vous aider, j'aurais besoin de quelques informations :
+      - De quelle ville partez-vous ?
+      - Quel jour exactement la semaine prochaine ?
+      - Par 'tot le matin', vous pensez a quelle heure environ ?"
+
+→ Le LLM gere le dialogue, pose des questions, comprend le contexte.
+→ Notre modele NER ne pourrait pas faire ca (il extrait, il ne dialogue pas).
+```
+
+---
+
+## 7. Resume : Le bon outil pour la bonne tache
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    CHOISIR LE BON TYPE DE MODELE                         │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Notre tache : Extraction de villes (depart/arrivee)                     │
+│  ────────────────────────────────────────────────────                    │
+│                                                                          │
+│  Caracteristiques :                                                      │
+│  ✓ Sortie structuree (2 champs fixes)                                    │
+│  ✓ Entites dans le texte (pas d'invention)                               │
+│  ✓ Volume eleve (milliers de requetes)                                   │
+│  ✓ Latence critique (temps reel)                                         │
+│  ✓ Determinisme requis (reproductibilite)                                │
+│                                                                          │
+│                              │                                           │
+│                              ▼                                           │
+│                                                                          │
+│  ┌────────────────────────────────────────────────────────────────┐      │
+│  │                                                                │      │
+│  │  MODELE NER SPECIALISE                                         │      │
+│  │  (spaCy ou CamemBERT)                                          │      │
+│  │                                                                │      │
+│  │  ✓ Rapide (1-20 ms)                                            │      │
+│  │  ✓ Leger (100-500 Mo)                                          │      │
+│  │  ✓ Deterministe                                                │      │
+│  │  ✓ Sortie structuree native                                    │      │
+│  │  ✓ Pas d'hallucination                                         │      │
+│  │  ✓ Fine-tuning rapide                                          │      │
+│  │                                                                │      │
+│  └────────────────────────────────────────────────────────────────┘      │
+│                                                                          │
+│                              VS                                          │
+│                                                                          │
+│  ┌────────────────────────────────────────────────────────────────┐      │
+│  │                                                                │      │
+│  │  LLM GENERALISTE                                               │      │
+│  │  (Qwen, Llama, Mistral, GPT...)                                │      │
+│  │                                                                │      │
+│  │  ✗ Lent (500-2000 ms)                                          │      │
+│  │  ✗ Lourd (14-150 Go)                                           │      │
+│  │  ✗ Non-deterministe                                            │      │
+│  │  ✗ Sortie texte libre (parsing requis)                         │      │
+│  │  ✗ Risque d'hallucination                                      │      │
+│  │  ✗ Fine-tuning couteux                                         │      │
+│  │                                                                │      │
+│  │  → Adapte pour : chatbots, Q&A, generation, traduction         │      │
+│  │  → PAS adapte pour : extraction structuree a grande echelle    │      │
+│  │                                                                │      │
+│  └────────────────────────────────────────────────────────────────┘      │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 8. Analogie simple
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                         ANALOGIE CULINAIRE                               │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Tache : Couper des legumes en des                                       │
+│                                                                          │
+│  ┌─────────────────────────┐    ┌─────────────────────────┐              │
+│  │                         │    │                         │              │
+│  │  COUTEAU DE CHEF        │    │  ROBOT CUISEUR          │              │
+│  │  (spaCy/CamemBERT)      │    │  MULTIFONCTION          │              │
+│  │                         │    │  (LLM)                  │              │
+│  │  ✓ Fait exactement      │    │                         │              │
+│  │    ce qu'on lui demande │    │  ✓ Peut tout faire :    │              │
+│  │  ✓ Rapide et precis     │    │    mixer, cuire, petrir │              │
+│  │  ✓ Peu couteux          │    │  ✗ Encombrant           │              │
+│  │  ✓ Facile a entretenir  │    │  ✗ Couteux              │              │
+│  │                         │    │  ✗ Lent a demarrer      │              │
+│  │  → Ideal pour couper    │    │  ✗ Surdimensionne pour  │              │
+│  │                         │    │    juste couper         │              │
+│  └─────────────────────────┘    └─────────────────────────┘              │
+│                                                                          │
+│  Pour couper des legumes, on utilise un couteau, pas un robot cuiseur.   │
+│  Pour extraire des entites, on utilise un NER, pas un LLM.               │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Conclusion
+
+| Critere | spaCy | CamemBERT | LLM (Qwen/Llama) |
+|---------|-------|-----------|------------------|
+| **Adapte a notre tache** | **Oui** | **Oui** | Non |
+| Latence | 1 ms | 15 ms | 500-2000 ms |
+| Taille | 100 Mo | 440 Mo | 14-150 Go |
+| Determinisme | Oui | Oui | Non |
+| Hallucination | Impossible | Impossible | Possible |
+| Cout | Tres faible | Faible | Eleve |
+
+**Notre choix** : spaCy pour la rapidite, CamemBERT pour la precision maximale.
+
+Les LLMs sont des outils puissants, mais **surdimensionnes et inadaptes** pour une tache d'extraction structuree comme la notre.
+
+---
+
+## References
+
+- spaCy : https://spacy.io/usage/linguistic-features#named-entities
+- CamemBERT : https://huggingface.co/camembert-base
+- BERT vs GPT : https://huggingface.co/blog/bert-101
+- Token Classification : https://huggingface.co/docs/transformers/tasks/token_classification

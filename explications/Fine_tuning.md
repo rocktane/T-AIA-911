@@ -457,3 +457,4 @@ Avec seulement **10,000 phrases** et **~30 minutes** d'entrainement :
 - Article CamemBERT : Martin et al., 2020 - "CamemBERT: a Tasty French Language Model"
 - Article BERT : Devlin et al., 2019 - "BERT: Pre-training of Deep Bidirectional Transformers"
 - HuggingFace Transformers : https://huggingface.co/docs/transformers
+- Voir aussi : [Pourquoi ces modeles](./pourquoi_ces_modeles.md) - spaCy/CamemBERT vs LLMs generalistes

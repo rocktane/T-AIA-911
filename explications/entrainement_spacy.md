@@ -18,6 +18,7 @@ Ce document fait référence à plusieurs notions détaillées dans des fichiers
 | Dropout | Régularisation (10%) | [Dropout.md](./Dropout.md) |
 | Early Stopping | Patience et arrêt anticipé | [EarlyStopping.md](./EarlyStopping.md) |
 | F1-Score | Métrique d'évaluation NER | [F1Score.md](./F1Score.md) |
+| Pourquoi ces modèles | spaCy/CamemBERT vs LLMs | [pourquoi_ces_modeles.md](./pourquoi_ces_modeles.md) |
 
 ---
 1. Le Script d'entraînement (train_spacy.py)
