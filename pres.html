@@ -613,15 +613,15 @@
             <div class="value-grid">
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-train icon"></i> SNCF Open Data</h3>
-                    <p>Liste des gares francaises avec coordonnees GPS, codes INSEE et connexions ferroviaires. Source officielle et fiable pour le reseau.</p>
+                    <p><strong>4 000+ gares</strong> avec coordonnees GPS, codes INSEE et connexions ferroviaires. Source : ressources.data.sncf.com</p>
                 </div>
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-city icon"></i> Communes Francaises</h3>
-                    <p>35,000+ communes avec coordonnees pour la resolution ville &rarr; gare quand la ville n'a pas de gare directe.</p>
+                    <p><strong>39 000+ communes</strong> avec coordonnees GPS pour la resolution ville &rarr; gare la plus proche (KD-Tree).</p>
                 </div>
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-file-alt icon"></i> Dataset NLP Genere</h3>
-                    <p>10,000 phrases annotees (8K train / 2K test) generees a partir de ~300 templates grammaticaux differents. Annotations au format BIO.</p>
+                    <p><strong>10 000 phrases</strong> annotees (8K train / 2K test) generees a partir de <strong>1 200+ templates</strong>. Format BIO pour le NER.</p>
                 </div>
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-file-csv icon"></i> Format I/O</h3>
@@ -729,34 +729,41 @@
             <h2 class="animate-item">Gestion des Cas Difficiles</h2>
             <div class="advantage-grid">
                 <div class="advantage-item animate-item">
+                    <h4><i class="fas fa-arrow-right icon"></i> Depart en premier</h4>
+                    <p>"De {Depart} a {Arrivee}", "Je pars de {Depart}..."</p>
+                </div>
+                <div class="advantage-item animate-item">
+                    <h4><i class="fas fa-arrow-left icon"></i> Arrivee en premier</h4>
+                    <p>"A {Arrivee} depuis {Depart}", "Direction {Arrivee}..."</p>
+                </div>
+                <div class="advantage-item animate-item">
+                    <h4><i class="fas fa-map-signs icon"></i> Avec etape (VIA)</h4>
+                    <p>"De {Depart} a {Arrivee} en passant par {Via}"</p>
+                </div>
+                <div class="advantage-item animate-item">
+                    <h4><i class="fas fa-route icon"></i> Etapes multiples</h4>
+                    <p>"{Depart} &rarr; {Via1} &rarr; {Via2} &rarr; {Arrivee}"</p>
+                </div>
+                <div class="advantage-item animate-item">
+                    <h4><i class="fas fa-ban icon"></i> Phrases invalides</h4>
+                    <p>"Il fait beau", "Bonjour", "Quelle heure est-il ?"</p>
+                </div>
+                <div class="advantage-item animate-item">
+                    <h4><i class="fas fa-minus icon"></i> Noms composes</h4>
+                    <p>Saint-Pierre-des-Corps, La Roche-sur-Yon, Port-Boulet</p>
+                </div>
+                <div class="advantage-item animate-item">
                     <h4><i class="fas fa-user icon"></i> Prenoms = Villes</h4>
-                    <p>Albert, Paris, Florence, Nancy, Lourdes correctement identifies</p>
+                    <p>Nancy, Florence, Albert, Lourdes, Valence</p>
                 </div>
                 <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-minus icon"></i> Noms Composes</h4>
-                    <p>Port-Boulet, Saint-Pierre-des-Corps, La Roche-sur-Yon</p>
+                    <h4><i class="fas fa-user-tag icon"></i> Contexte prenom</h4>
+                    <p>"{Prenom} veut aller a {Arrivee}" (prenom ≠ depart)</p>
                 </div>
                 <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-font icon"></i> Sans Majuscules</h4>
-                    <p>"je veux aller de paris a lyon" fonctionne parfaitement</p>
+                    <h4><i class="fas fa-question icon"></i> Phrases ambigues</h4>
+                    <p>"Je vais a {Arrivee}" (depart manquant)</p>
                 </div>
-                <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-spell-check icon"></i> Sans Accents</h4>
-                    <p>"de beziers a montpellier" correctement interprete</p>
-                </div>
-                <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-exclamation-triangle icon"></i> Fautes d'Orthographe</h4>
-                    <p>Marseile &rarr; Marseille, Bordeau &rarr; Bordeaux (fuzzy matching)</p>
-                </div>
-                <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-exchange-alt icon"></i> Ordre Inverse</h4>
-                    <p>"A Marseille depuis Lyon" detecte arrivee avant depart</p>
-                </div>
-            </div>
-            <div class="code-block animate-item">
-                <span class="comment"># Exemple d'entree/sortie</span><br>
-                <span class="keyword">INPUT:</span> <span class="string">"Je veux aller de paris a lyon"</span><br>
-                <span class="keyword">OUTPUT:</span> Paris, Paris Gare de Lyon, Lyon, Lyon Part-Dieu, <span class="string">"Paris&rarr;Lyon"</span>
             </div>
         </div>
     </div>
@@ -800,11 +807,11 @@
                     <div class="metric-label">Phrases d'entrainement</div>
                 </div>
                 <div class="metric-card animate-item">
-                    <div class="metric-number">3000+</div>
+                    <div class="metric-number">4 000+</div>
                     <div class="metric-label">Gares SNCF</div>
                 </div>
                 <div class="metric-card animate-item">
-                    <div class="metric-number">35K+</div>
+                    <div class="metric-number">39K+</div>
                     <div class="metric-label">Communes francaises</div>
                 </div>
             </div>
