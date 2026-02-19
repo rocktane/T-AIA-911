@@ -585,6 +585,9 @@ async def api_map(
     route: str | None = None,
     dep_station: str | None = None,
     arr_station: str | None = None,
+    route2: str | None = None,
+    dep_station2: str | None = None,
+    arr_station2: str | None = None,
 ) -> HTMLResponse:
     """
     Generate a Folium interactive map.
@@ -592,6 +595,8 @@ async def api_map(
     - Without params: shows all SNCF stations as small grey dots over France.
     - With `route` (comma-separated station names), `dep_station`, `arr_station`:
       draws a blue polyline and coloured markers for the route.
+    - With `route2`, `dep_station2`, `arr_station2`: draws a second route
+      in red (for comparing spaCy vs CamemBERT).
     """
     # Centre on France
     fmap = folium.Map(
@@ -620,47 +625,68 @@ async def api_map(
                 tooltip=name,
             ).add_to(fmap)
 
-    # Draw the route if provided
-    if route:
-        station_names = [s.strip() for s in route.split(",") if s.strip()]
-        route_coords: list[tuple[float, float]] = []
+    all_route_coords: list[tuple[float, float]] = []
 
-        for name in station_names:
-            coords = station_coords.get(name)
-            if coords:
-                route_coords.append(coords)
+    # Draw a single route on the map
+    def draw_route(
+        route_str: str,
+        dep: str | None,
+        arr: str | None,
+        line_color: str,
+        label: str | None = None,
+    ) -> None:
+        names = [s.strip() for s in route_str.split(",") if s.strip()]
+        coords: list[tuple[float, float]] = []
+        for n in names:
+            c = station_coords.get(n)
+            if c:
+                coords.append(c)
 
-        if len(route_coords) >= 2:
-            # Blue route polyline
-            folium.PolyLine(
-                locations=route_coords,
-                color="#1565C0",
-                weight=4,
-                opacity=0.85,
+        if len(coords) < 2:
+            return
+
+        all_route_coords.extend(coords)
+
+        tooltip_label = f" ({label})" if label else ""
+        folium.PolyLine(
+            locations=coords,
+            color=line_color,
+            weight=4,
+            opacity=0.85,
+            tooltip=label,
+        ).add_to(fmap)
+
+        for name, coord in zip(names, coords):
+            if name == dep:
+                color = "green"
+                icon = "train"
+            elif name == arr:
+                color = "red"
+                icon = "flag"
+            else:
+                color = "orange"
+                icon = "exchange"
+
+            folium.Marker(
+                location=list(coord),
+                tooltip=f"{name}{tooltip_label}",
+                popup=f"{name}{tooltip_label}",
+                icon=folium.Icon(color=color, icon=icon, prefix="fa"),
             ).add_to(fmap)
 
-            # Markers for each station in the route
-            for i, (name, coords) in enumerate(zip(station_names, route_coords)):
-                if name == dep_station:
-                    color = "green"
-                    icon = "train"
-                elif name == arr_station:
-                    color = "red"
-                    icon = "flag"
-                else:
-                    color = "orange"
-                    icon = "exchange"
+    if route:
+        label = "spaCy" if route2 else None
+        draw_route(route, dep_station, arr_station, "#1565C0", label)
 
-                folium.Marker(
-                    location=list(coords),
-                    tooltip=name,
-                    popup=name,
-                    icon=folium.Icon(color=color, icon=icon, prefix="fa"),
-                ).add_to(fmap)
+    if route2:
+        draw_route(route2, dep_station2, arr_station2, "#C62828", "CamemBERT")
 
-            # Fit the map view to the route
-            fmap.fit_bounds([[min(c[0] for c in route_coords), min(c[1] for c in route_coords)],
-                             [max(c[0] for c in route_coords), max(c[1] for c in route_coords)]])
+    # Fit the map view to all routes
+    if all_route_coords:
+        fmap.fit_bounds([
+            [min(c[0] for c in all_route_coords), min(c[1] for c in all_route_coords)],
+            [max(c[0] for c in all_route_coords), max(c[1] for c in all_route_coords)],
+        ])
 
     return HTMLResponse(content=fmap._repr_html_())
 

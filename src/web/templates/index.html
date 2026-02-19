@@ -777,6 +777,10 @@
             width: 100%;
             margin-top: 24px;
             border: 1px solid #000;
+            display: none;
+        }
+        .map-section.visible {
+            display: block;
         }
         .map-header {
             display: flex;
@@ -788,6 +792,53 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             color: #666;
+        }
+        .map-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .map-header-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .map-route-btns {
+            display: none;
+            gap: 4px;
+            align-items: center;
+        }
+        .map-route-btns.visible {
+            display: flex;
+        }
+        .map-route-btn {
+            font-family: 'Courier New', monospace;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border: 1px solid #999;
+            background: #fff;
+            color: #666;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+        }
+        .map-route-btn:hover {
+            border-color: #000;
+            color: #000;
+        }
+        .map-route-btn.active {
+            background: #000;
+            color: #fff;
+            border-color: #000;
+        }
+        .map-same-label {
+            font-size: 0.7rem;
+            color: #999;
+            font-style: italic;
+            display: none;
+        }
+        .map-same-label.visible {
+            display: inline;
         }
         .map-iframe {
             width: 100%;
@@ -863,13 +914,22 @@
         <!-- Map section -->
         <div class="map-section" id="map-section">
             <div class="map-header">
-                <span>Carte du réseau ferroviaire</span>
-                <span id="map-route-label"></span>
+                <div class="map-header-left">
+                    <span>Carte du réseau ferroviaire</span>
+                    <span id="map-route-label"></span>
+                </div>
+                <div class="map-header-right">
+                    <span class="map-same-label" id="map-same-label">Trajet identique</span>
+                    <div class="map-route-btns" id="map-route-btns">
+                        <button type="button" class="map-route-btn" id="map-btn-spacy">spaCy</button>
+                        <button type="button" class="map-route-btn active" id="map-btn-compare">Comparer</button>
+                        <button type="button" class="map-route-btn" id="map-btn-camembert">CamemBERT</button>
+                    </div>
+                </div>
             </div>
             <iframe
                 id="map-iframe"
                 class="map-iframe"
-                src="/api/map"
                 title="Carte SNCF"
             ></iframe>
         </div>
@@ -971,7 +1031,8 @@
             models: {
                 spacy_available: {{ 'true' if spacy_available else 'false' }},
                 camembert_available: {{ 'true' if camembert_available else 'false' }}
-            }
+            },
+            mapRouteFilter: 'both'  // 'both', 'spacy', 'camembert'
         };
 
         // DOM elements
@@ -1008,6 +1069,9 @@
             state.cache.spacy = null;
             state.cache.camembert = null;
             state.currentSentence = '';
+
+            // Hide map
+            document.getElementById('map-section').classList.remove('visible');
         });
 
         sentenceInput.addEventListener('input', updateClearButton);
@@ -1366,30 +1430,106 @@
             updateMap();
         }
 
+        // Check if two routes are identical
+        function routesAreEqual(route1, route2) {
+            if (!route1 || !route2) return false;
+            if (route1.length !== route2.length) return false;
+            return route1.every((s, i) => s === route2[i]);
+        }
+
         // Update the Folium map iframe based on the current result
         function updateMap() {
             const mapIframe = document.getElementById('map-iframe');
             const mapLabel = document.getElementById('map-route-label');
-            if (!mapIframe) return;
+            const mapSection = document.getElementById('map-section');
+            const routeBtns = document.getElementById('map-route-btns');
+            const sameLabel = document.getElementById('map-same-label');
+            const btnSpacy = document.getElementById('map-btn-spacy');
+            const btnCompare = document.getElementById('map-btn-compare');
+            const btnCamembert = document.getElementById('map-btn-camembert');
+            if (!mapIframe || !mapSection) return;
 
-            // Pick the primary result (spaCy or current model)
-            const result = state.cache[state.currentModel === 'compare' ? 'spacy' : state.currentModel];
+            const spacyResult = state.cache.spacy;
+            const camembertResult = state.cache.camembert;
+            const isCompare = state.currentModel === 'compare';
 
-            if (result && result.is_valid && result.route && result.route.length >= 2) {
-                const routeParam = encodeURIComponent(result.route.join(','));
-                const depParam = encodeURIComponent(result.departure_station || '');
-                const arrParam = encodeURIComponent(result.arrival_station || '');
-                mapIframe.src = `/api/map?route=${routeParam}&dep_station=${depParam}&arr_station=${arrParam}`;
-                if (result.departure && result.arrival) {
-                    mapLabel.textContent = `${result.departure} → ${result.arrival}`;
-                } else {
-                    mapLabel.textContent = '';
-                }
+            // Determine the primary result
+            const primaryResult = isCompare
+                ? spacyResult
+                : state.cache[state.currentModel];
+
+            // No valid result → hide map
+            if (!primaryResult || !primaryResult.is_valid || !primaryResult.route || primaryResult.route.length < 2) {
+                mapSection.classList.remove('visible');
+                return;
+            }
+
+            // Show map
+            mapSection.classList.add('visible');
+
+            // Check compare mode route status
+            const bothValid = isCompare
+                && spacyResult && spacyResult.is_valid && spacyResult.route && spacyResult.route.length >= 2
+                && camembertResult && camembertResult.is_valid && camembertResult.route && camembertResult.route.length >= 2;
+            const sameRoute = bothValid && routesAreEqual(spacyResult.route, camembertResult.route);
+            const hasTwoRoutes = bothValid && !sameRoute;
+
+            // Show/hide header controls
+            routeBtns.classList.toggle('visible', hasTwoRoutes);
+            sameLabel.classList.toggle('visible', isCompare && sameRoute);
+
+            // Update button active states
+            if (hasTwoRoutes) {
+                btnSpacy.classList.toggle('active', state.mapRouteFilter === 'spacy');
+                btnCompare.classList.toggle('active', state.mapRouteFilter === 'both');
+                btnCamembert.classList.toggle('active', state.mapRouteFilter === 'camembert');
+            }
+
+            // Determine which route(s) to display
+            const showSpacy = !hasTwoRoutes || state.mapRouteFilter === 'both' || state.mapRouteFilter === 'spacy';
+            const showCamembert = hasTwoRoutes && (state.mapRouteFilter === 'both' || state.mapRouteFilter === 'camembert');
+
+            // Build map URL
+            let mapUrl = '/api/map';
+            const params = [];
+
+            if (showSpacy) {
+                const src = hasTwoRoutes ? spacyResult : primaryResult;
+                params.push(`route=${encodeURIComponent(src.route.join(','))}`);
+                params.push(`dep_station=${encodeURIComponent(src.departure_station || '')}`);
+                params.push(`arr_station=${encodeURIComponent(src.arrival_station || '')}`);
+            }
+
+            if (showCamembert && !showSpacy) {
+                // CamemBERT only → use primary route params
+                params.push(`route=${encodeURIComponent(camembertResult.route.join(','))}`);
+                params.push(`dep_station=${encodeURIComponent(camembertResult.departure_station || '')}`);
+                params.push(`arr_station=${encodeURIComponent(camembertResult.arrival_station || '')}`);
+            } else if (showCamembert && showSpacy) {
+                // Both → CamemBERT as route2
+                params.push(`route2=${encodeURIComponent(camembertResult.route.join(','))}`);
+                params.push(`dep_station2=${encodeURIComponent(camembertResult.departure_station || '')}`);
+                params.push(`arr_station2=${encodeURIComponent(camembertResult.arrival_station || '')}`);
+            }
+
+            if (params.length) {
+                mapUrl += '?' + params.join('&');
+            }
+
+            // Update label
+            if (hasTwoRoutes && showSpacy && showCamembert) {
+                mapLabel.textContent = 'spaCy vs CamemBERT';
+            } else if (hasTwoRoutes && showCamembert && camembertResult.departure && camembertResult.arrival) {
+                mapLabel.textContent = `${camembertResult.departure} → ${camembertResult.arrival}`;
+            } else if (primaryResult.departure && primaryResult.arrival) {
+                mapLabel.textContent = `${primaryResult.departure} → ${primaryResult.arrival}`;
             } else {
-                // Reset to base map
-                mapIframe.src = '/api/map';
                 mapLabel.textContent = '';
             }
+
+            // Cache-bust to force iframe reload on every filter change
+            const sep = mapUrl.includes('?') ? '&' : '?';
+            mapIframe.src = mapUrl + sep + '_t=' + Date.now();
         }
 
         // Tab click handler
@@ -1954,6 +2094,20 @@
             tabs.forEach(tab => tab.addEventListener('click', handleTabClick));
             sentenceInput.addEventListener('keydown', handleInputKeydown);
             sentenceInput.addEventListener('keyup', handleInputKeyup);
+
+            // Map route filter buttons
+            document.getElementById('map-btn-spacy').addEventListener('click', () => {
+                state.mapRouteFilter = 'spacy';
+                updateMap();
+            });
+            document.getElementById('map-btn-compare').addEventListener('click', () => {
+                state.mapRouteFilter = 'both';
+                updateMap();
+            });
+            document.getElementById('map-btn-camembert').addEventListener('click', () => {
+                state.mapRouteFilter = 'camembert';
+                updateMap();
+            });
 
             if (checkVoiceSupport()) {
                 micBtn.addEventListener('click', toggleRecording);
