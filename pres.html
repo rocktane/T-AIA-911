@@ -519,19 +519,19 @@
             <div class="intro-content">
                 <h1 class="animate-item">Travel Order Resolver</h1>
                 <p class="intro-tagline animate-item">
-                    Extraction intelligente d'itineraires ferroviaires<br>
-                    a partir du langage naturel
+                    Extraction intelligente d'itinéraires ferroviaires<br>
+                    à partir du langage naturel
                 </p>
                 <div class="intro-features">
                     <div class="intro-feature animate-item">
                         <i class="fas fa-brain intro-feature-icon"></i>
-                        <div class="intro-feature-title">NLP Avance</div>
-                        <div class="intro-feature-desc">CamemBERT fine-tune</div>
+                        <div class="intro-feature-title">NLP Avancé</div>
+                        <div class="intro-feature-desc">CamemBERT fine-tuné</div>
                     </div>
                     <div class="intro-feature animate-item">
                         <i class="fas fa-map-pin intro-feature-icon"></i>
                         <div class="intro-feature-title">Ville &rarr; Gare</div>
-                        <div class="intro-feature-desc">Resolution spatiale</div>
+                        <div class="intro-feature-desc">Résolution spatiale</div>
                     </div>
                     <div class="intro-feature animate-item">
                         <i class="fas fa-route intro-feature-icon"></i>
@@ -540,34 +540,34 @@
                     </div>
                     <div class="intro-feature animate-item">
                         <i class="fas fa-train intro-feature-icon"></i>
-                        <div class="intro-feature-title">Reseau SNCF</div>
-                        <div class="intro-feature-desc">Donnees Open Data</div>
+                        <div class="intro-feature-title">Réseau SNCF</div>
+                        <div class="intro-feature-desc">Données Open Data</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Slide 2: Problematique -->
+    <!-- Slide 2: Problématique -->
     <div class="slide" data-slide="1">
         <div class="content">
-            <h2 class="animate-item">La Problematique</h2>
+            <h2 class="animate-item">La Problématique</h2>
             <div class="value-grid">
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-comment-dots icon"></i> Langage Naturel</h3>
-                    <p>Les utilisateurs expriment leurs besoins de voyage de maniere variee : "Je veux aller de Paris a Lyon", "Comment me rendre a Marseille depuis Bordeaux ?"</p>
+                    <p>Les utilisateurs expriment leurs besoins de voyage de manière variée : « Je veux aller de Paris à Lyon », « Comment me rendre à Marseille depuis Bordeaux ? »</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-search icon"></i> Extraction d'Entites (NER)</h3>
-                    <p>Identifier automatiquement les villes de depart et d'arrivee dans des phrases en francais, meme avec des ambiguites (prenoms = villes)</p>
+                    <h3><i class="fas fa-search icon"></i> Extraction d'Entités (NER)</h3>
+                    <p>Identifier automatiquement les villes de départ et d'arrivée dans des phrases en français, même avec des ambiguïtés (prénoms = villes)</p>
                 </div>
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-check-circle icon"></i> Classification Valide/Invalide</h3>
-                    <p>Distinguer les ordres de voyage valides des phrases sans intention de voyage : "Il fait beau" → INVALID</p>
+                    <p>Distinguer les ordres de voyage valides des phrases sans intention de voyage : « Il fait beau » → INVALID</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-database icon"></i> Sources de Donnees</h3>
-                    <p>Exploiter les donnees SNCF Open Data (gares, connexions) et generer un dataset d'entrainement de 10,000 phrases annotees</p>
+                    <h3><i class="fas fa-database icon"></i> Sources de Données</h3>
+                    <p>Exploiter les données SNCF Open Data (gares, connexions) et générer un dataset d'entraînement de 10 000 phrases annotées</p>
                 </div>
             </div>
         </div>
@@ -589,8 +589,8 @@
                 </div>
                 <div class="pipeline-arrow animate-item"><i class="fas fa-arrow-down"></i></div>
                 <div class="pipeline-step highlight animate-item">
-                    <h4><i class="fas fa-map-pin icon"></i> RESOLUTION VILLE &rarr; GARE</h4>
-                    <p>Associe chaque ville extraite a sa gare SNCF (KD-Tree + Haversine)</p>
+                    <h4><i class="fas fa-map-pin icon"></i> RÉSOLUTION VILLE &rarr; GARE</h4>
+                    <p>Associe chaque ville extraite à sa gare SNCF (KD-Tree + Haversine)</p>
                 </div>
                 <div class="pipeline-arrow animate-item"><i class="fas fa-arrow-down"></i></div>
                 <div class="pipeline-step highlight animate-item">
@@ -600,32 +600,32 @@
                 <div class="pipeline-arrow animate-item"><i class="fas fa-arrow-down"></i></div>
                 <div class="pipeline-step animate-item">
                     <h4><i class="fas fa-file-export icon"></i> OUTPUT</h4>
-                    <p>sentenceID, ville_dep, gare_dep, ville_arr, gare_arr, itineraire</p>
+                    <p>sentenceID, ville_dep, gare_dep, ville_arr, gare_arr, itinéraire</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Slide 4: Donnees & Dataset -->
+    <!-- Slide 4: Données & Dataset -->
     <div class="slide" data-slide="3">
         <div class="content">
-            <h2 class="animate-item">Donnees & Dataset</h2>
+            <h2 class="animate-item">Données & Dataset</h2>
             <div class="value-grid">
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-train icon"></i> SNCF Open Data</h3>
-                    <p><strong>4 000+ gares</strong> avec coordonnees GPS, codes INSEE et connexions ferroviaires. Source : ressources.data.sncf.com</p>
+                    <p><strong>4 000+ gares</strong> avec coordonnées GPS, codes INSEE et connexions ferroviaires. Source : ressources.data.sncf.com</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-city icon"></i> Communes Francaises</h3>
-                    <p><strong>39 000+ communes</strong> avec coordonnees GPS pour la resolution ville &rarr; gare la plus proche (KD-Tree).</p>
+                    <h3><i class="fas fa-city icon"></i> Communes Françaises</h3>
+                    <p><strong>39 000+ communes</strong> avec coordonnées GPS pour la résolution ville &rarr; gare la plus proche (KD-Tree).</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-file-alt icon"></i> Dataset NLP Genere</h3>
-                    <p><strong>10 000 phrases</strong> annotees (8K train / 2K test) generees a partir de <strong>1 200+ templates</strong>. Format BIO pour le NER.</p>
+                    <h3><i class="fas fa-file-alt icon"></i> Dataset NLP Généré</h3>
+                    <p><strong>10 000 phrases</strong> annotées (8K train / 2K test) générées à partir de <strong>1 200+ templates</strong>. Format BIO pour le NER.</p>
                 </div>
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-file-csv icon"></i> Format I/O</h3>
-                    <p>Entree : <code>sentenceID,sentence</code> (stdin ou fichier CSV UTF-8)<br>Sortie : <code>sentenceID,Departure,Destination</code> ou <code>INVALID</code></p>
+                    <p>Entrée : <code>sentenceID,sentence</code> (stdin ou fichier CSV UTF-8)<br>Sortie : <code>sentenceID,Departure,Destination</code> ou <code>INVALID</code></p>
                 </div>
             </div>
         </div>
@@ -644,12 +644,12 @@
                 <div class="feature-card animate-item">
                     <div class="feature-icon"><i class="fas fa-robot"></i></div>
                     <h3>spaCy</h3>
-                    <p>Pipeline NLP industriel pour le NER avec modele custom entraine</p>
+                    <p>Pipeline NLP industriel pour le NER avec modèle custom entraîné</p>
                 </div>
                 <div class="feature-card animate-item">
                     <div class="feature-icon"><i class="fas fa-brain"></i></div>
                     <h3>CamemBERT</h3>
-                    <p>Transformer BERT francais fine-tune pour une precision maximale</p>
+                    <p>Transformer BERT français fine-tuné pour une précision maximale</p>
                 </div>
                 <div class="feature-card animate-item">
                     <div class="feature-icon"><i class="fas fa-calculator"></i></div>
@@ -659,7 +659,7 @@
                 <div class="feature-card animate-item">
                     <div class="feature-icon"><i class="fas fa-project-diagram"></i></div>
                     <h3>NetworkX</h3>
-                    <p>Algorithme de Dijkstra pour le calcul d'itineraires optimaux</p>
+                    <p>Algorithme de Dijkstra pour le calcul d'itinéraires optimaux</p>
                 </div>
                 <div class="feature-card animate-item">
                     <div class="feature-icon"><i class="fas fa-server"></i></div>
@@ -670,14 +670,14 @@
         </div>
     </div>
 
-    <!-- Slide 6: Modele spaCy -->
+    <!-- Slide 6: Modèle spaCy -->
     <div class="slide" data-slide="5">
         <div class="content">
-            <h2 class="animate-item">Modele spaCy — Architecture & Entrainement</h2>
+            <h2 class="animate-item">Modèle spaCy — Architecture & Entraînement</h2>
             <div class="value-grid">
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-font icon"></i> Tokenisation</h3>
-                    <p><strong>spacy.Tokenizer</strong> (basee sur des regles)<br>Decoupe par espaces, ponctuation, prefixes/suffixes<br>Chaque mot = 1 token (pas de sous-mots)<br>Ex : "Saint-Etienne" &rarr; ["Saint", "-", "Etienne"]</p>
+                    <p><strong>spacy.Tokenizer</strong> (basée sur des règles)<br>Découpe par espaces, ponctuation, préfixes/suffixes<br>Chaque mot = 1 token (pas de sous-mots)<br>Ex : « Saint-Étienne » &rarr; [« Saint », « - », « Étienne »]</p>
                 </div>
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-layer-group icon"></i> Embedding (Tok2Vec)</h3>
@@ -685,49 +685,49 @@
                 </div>
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-sitemap icon"></i> Classification (NER)</h3>
-                    <p><strong>TransitionBasedParser</strong> — curseur mot par mot<br>A chaque token, decide : entite ou pas (shift/reduce)<br>Couche cachee de 64 unites<br>Classification sequentielle (pas en une seule passe)</p>
+                    <p><strong>TransitionBasedParser</strong> — curseur mot par mot<br>À chaque token, décide : entité ou pas (shift/reduce)<br>Couche cachée de 64 unités<br>Classification séquentielle (pas en une seule passe)</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-sliders-h icon"></i> Entrainement</h3>
-                    <p><strong>Adam</strong> — lr=5e-5 (warmup lineaire 250 steps)<br>Dropout : 0.1, L2 : 0.01, Grad clip : 1.0<br>5000 steps, eval tous les 200 steps<br>F1 final : <strong>95.57%</strong></p>
+                    <h3><i class="fas fa-sliders-h icon"></i> Entraînement</h3>
+                    <p><strong>Adam</strong> — lr=5e-5 (warmup linéaire 250 steps)<br>Dropout : 0.1, L2 : 0.01, Grad clip : 1.0<br>5000 steps, eval tous les 200 steps<br>F1 final : <strong>95.57%</strong></p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Slide 7: Modele CamemBERT -->
+    <!-- Slide 7: Modèle CamemBERT -->
     <div class="slide" data-slide="6">
         <div class="content">
-            <h2 class="animate-item">Modele CamemBERT — Architecture & Entrainement</h2>
+            <h2 class="animate-item">Modèle CamemBERT — Architecture & Entraînement</h2>
             <div class="value-grid">
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-font icon"></i> SentencePiece (Tokenizer)</h3>
-                    <p>Decoupe en <strong>sous-mots</strong> (subword units)<br>Vocabulaire : 32 000 tokens<br>Gere mots rares, accents, apostrophes<br>Ex : "Saint-Etienne" &rarr; ["Saint", "-", "Et", "ienne"]</p>
+                    <p>Découpe en <strong>sous-mots</strong> (subword units)<br>Vocabulaire : 32 000 tokens<br>Gère mots rares, accents, apostrophes<br>Ex : « Saint-Étienne » &rarr; [« Saint », « - », « Ét », « ienne »]</p>
                 </div>
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-layer-group icon"></i> Embedding + Encoder</h3>
-                    <p><strong>Embedding</strong> : chaque token &rarr; vecteur 768 dims<br><strong>Encoder</strong> : 12 couches Transformer<br>~110M parametres</p>
+                    <p><strong>Embedding</strong> : chaque token &rarr; vecteur 768 dims<br><strong>Encoder</strong> : 12 couches Transformer<br>~110M paramètres</p>
                 </div>
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-graduation-cap icon"></i> Transfer Learning</h3>
-                    <p><strong>Pre-entrainement</strong> : MLM sur 138 Go de francais<br>Le modele connait deja la langue francaise<br><strong>Classification Head</strong> : couche Linear(768 &rarr; 7)<br>7 labels BIO : O, B/I-DEPART, B/I-ARRIVEE, B/I-VIA</p>
+                    <p><strong>Pré-entraînement</strong> : MLM sur 138 Go de français<br>Le modèle connaît déjà la langue française<br><strong>Classification Head</strong> : couche Linear(768 &rarr; 7)<br>7 labels BIO : O, B/I-DEPART, B/I-ARRIVEE, B/I-VIA</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-sliders-h icon"></i> Entrainement</h3>
+                    <h3><i class="fas fa-sliders-h icon"></i> Entraînement</h3>
                     <p><strong>AdamW</strong> — lr=5e-5, warmup=10%<br>Batch : 16, Weight decay : 0.01<br>Early stopping (patience=3)<br>F1 macro final : <strong>99.67%</strong></p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Slide 8: Comparaison des Modeles NLP -->
+    <!-- Slide 8: Comparaison des Modèles NLP -->
     <div class="slide" data-slide="7">
         <div class="content">
-            <h2 class="animate-item">Comparaison des Modeles NLP</h2>
+            <h2 class="animate-item">Comparaison des Modèles NLP</h2>
             <table class="metrics-table animate-item">
                 <thead>
                     <tr>
-                        <th>Metrique</th>
+                        <th>Métrique</th>
                         <th>Baseline (Regex)</th>
                         <th>spaCy Custom</th>
                         <th>CamemBERT</th>
@@ -735,13 +735,13 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td>F1 Depart</td>
+                        <td>F1 Départ</td>
                         <td>73.14%</td>
                         <td>95.72%</td>
                         <td class="best">99.82%</td>
                     </tr>
                     <tr>
-                        <td>F1 Arrivee</td>
+                        <td>F1 Arrivée</td>
                         <td>71.12%</td>
                         <td>94.82%</td>
                         <td class="best">99.52%</td>
@@ -753,7 +753,7 @@
                         <td class="best">~99%</td>
                     </tr>
                     <tr>
-                        <td>Detection Valide</td>
+                        <td>Détection Valide</td>
                         <td>90.00%</td>
                         <td>89.55%</td>
                         <td class="best">~99%</td>
@@ -763,11 +763,11 @@
             <div class="value-grid" style="margin-top: 30px;">
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-database icon"></i> Dataset</h3>
-                    <p>10,000 phrases annotees generees automatiquement (8000 train / 2000 test) avec templates variees</p>
+                    <p>10 000 phrases annotées générées automatiquement (8000 train / 2000 test) avec templates variées</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-tags icon"></i> Schema BIO</h3>
-                    <p>Labels : B-DEPART, I-DEPART, B-ARRIVEE, I-ARRIVEE, B-VIA, I-VIA, O. Tagging par token pour chaque mot de la phrase.</p>
+                    <h3><i class="fas fa-balance-scale icon"></i> spaCy vs CamemBERT</h3>
+                    <p><strong>Taille</strong> : ~15 Mo vs ~440 Mo &bull; <strong>Inférence</strong> : ~5 ms vs ~50 ms/phrase<br>CamemBERT gagne grâce au <strong>transfer learning</strong> (pré-entraîné sur 138 Go de français).</p>
                 </div>
             </div>
         </div>
@@ -779,75 +779,75 @@
             <h2 class="animate-item">Gestion des Cas Difficiles</h2>
             <div class="advantage-grid">
                 <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-arrow-right icon"></i> Depart en premier</h4>
-                    <p>"De {Depart} a {Arrivee}", "Je pars de {Depart}..."</p>
+                    <h4><i class="fas fa-arrow-right icon"></i> Départ en premier</h4>
+                    <p>« De {Départ} à {Arrivée} », « Je pars de {Départ}... »</p>
                 </div>
                 <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-arrow-left icon"></i> Arrivee en premier</h4>
-                    <p>"A {Arrivee} depuis {Depart}", "Direction {Arrivee}..."</p>
+                    <h4><i class="fas fa-arrow-left icon"></i> Arrivée en premier</h4>
+                    <p>« À {Arrivée} depuis {Départ} », « Direction {Arrivée}... »</p>
                 </div>
                 <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-map-signs icon"></i> Avec etape (VIA)</h4>
-                    <p>"De {Depart} a {Arrivee} en passant par {Via}"</p>
+                    <h4><i class="fas fa-map-signs icon"></i> Avec étape (VIA)</h4>
+                    <p>« De {Départ} à {Arrivée} en passant par {Via} »</p>
                 </div>
                 <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-route icon"></i> Etapes multiples</h4>
-                    <p>"{Depart} &rarr; {Via1} &rarr; {Via2} &rarr; {Arrivee}"</p>
+                    <h4><i class="fas fa-route icon"></i> Étapes multiples</h4>
+                    <p>« {Départ} &rarr; {Via1} &rarr; {Via2} &rarr; {Arrivée} »</p>
                 </div>
                 <div class="advantage-item animate-item">
                     <h4><i class="fas fa-ban icon"></i> Phrases invalides</h4>
-                    <p>"Il fait beau", "Bonjour", "Quelle heure est-il ?"</p>
+                    <p>« Il fait beau », « Bonjour », « Quelle heure est-il ? »</p>
                 </div>
                 <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-minus icon"></i> Noms composes</h4>
+                    <h4><i class="fas fa-minus icon"></i> Noms composés</h4>
                     <p>Saint-Pierre-des-Corps, La Roche-sur-Yon, Port-Boulet</p>
                 </div>
                 <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-user icon"></i> Prenoms = Villes</h4>
+                    <h4><i class="fas fa-user icon"></i> Prénoms = Villes</h4>
                     <p>Nancy, Florence, Albert, Lourdes, Valence</p>
                 </div>
                 <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-user-tag icon"></i> Contexte prenom</h4>
-                    <p>"{Prenom} veut aller a {Arrivee}" (prenom ≠ depart)</p>
+                    <h4><i class="fas fa-user-tag icon"></i> Contexte prénom</h4>
+                    <p>« {Prénom} veut aller à {Arrivée} » (prénom ≠ départ)</p>
                 </div>
                 <div class="advantage-item animate-item">
-                    <h4><i class="fas fa-question icon"></i> Phrases ambigues</h4>
-                    <p>"Je vais a {Arrivee}" (depart manquant)</p>
+                    <h4><i class="fas fa-question icon"></i> Phrases ambiguës</h4>
+                    <p>« Je vais à {Arrivée} » (départ manquant)</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Slide 10: Resolution Ville-Gare & Pathfinding -->
+    <!-- Slide 10: Résolution Ville-Gare & Pathfinding -->
     <div class="slide" data-slide="9">
 
         <div class="content">
-            <h2 class="animate-item">Resolution Ville &rarr; Gare & Pathfinding</h2>
+            <h2 class="animate-item">Résolution Ville &rarr; Gare & Pathfinding</h2>
             <div class="value-grid">
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-map-pin icon"></i> Correspondance Ville &rarr; Gare</h3>
-                    <p>Le NLP extrait des noms de villes. Ce module associe chaque ville extraite a sa gare SNCF via code INSEE. Si la ville n'a pas de gare, on trouve la gare la plus proche.</p>
+                    <p>Le NLP extrait des noms de villes. Ce module associe chaque ville extraite à sa gare SNCF via code INSEE. Si la ville n'a pas de gare, on trouve la gare la plus proche.</p>
                 </div>
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-tree icon"></i> KD-Tree + Haversine</h3>
-                    <p>Recherche spatiale en O(log n) pour trouver la gare la plus proche d'une commune. Distance calculee sur sphere terrestre (formule Haversine).</p>
+                    <p>Recherche spatiale en O(log n) pour trouver la gare la plus proche d'une commune. Distance calculée sur sphère terrestre (formule Haversine).</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-project-diagram icon"></i> Graphe du Reseau SNCF</h3>
-                    <p>Les gares sont des noeuds, les connexions ferroviaires sont des aretes. Donnees importees depuis SNCF Open Data (CSV).</p>
+                    <h3><i class="fas fa-project-diagram icon"></i> Graphe du Réseau SNCF</h3>
+                    <p>Les gares sont des nœuds, les connexions ferroviaires sont des arêtes. Données importées depuis SNCF Open Data (CSV).</p>
                 </div>
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-route icon"></i> Dijkstra (Plus Court Chemin)</h3>
-                    <p>Algorithme classique de pathfinding. Retourne la sequence de gares : Depart &rarr; Etape1 &rarr; ... &rarr; Destination.</p>
+                    <p>Algorithme classique de pathfinding. Retourne la séquence de gares : Départ &rarr; Étape1 &rarr; ... &rarr; Destination.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Slide 11: Chiffres Cles -->
+    <!-- Slide 11: Chiffres Clés -->
     <div class="slide" data-slide="10">
         <div class="content">
-            <h2 class="animate-item">Chiffres Cles</h2>
+            <h2 class="animate-item">Chiffres Clés</h2>
             <div class="metrics-grid">
                 <div class="metric-card animate-item">
                     <div class="metric-number">99.67%</div>
@@ -855,7 +855,7 @@
                 </div>
                 <div class="metric-card animate-item">
                     <div class="metric-number">10K</div>
-                    <div class="metric-label">Phrases d'entrainement</div>
+                    <div class="metric-label">Phrases d'entraînement</div>
                 </div>
                 <div class="metric-card animate-item">
                     <div class="metric-number">4 000+</div>
@@ -863,57 +863,57 @@
                 </div>
                 <div class="metric-card animate-item">
                     <div class="metric-number">39K+</div>
-                    <div class="metric-label">Communes francaises</div>
+                    <div class="metric-label">Communes françaises</div>
                 </div>
             </div>
             <div class="value-grid" style="margin-top: 30px;">
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-tags icon"></i> Labels NER</h3>
-                    <p>B-DEPART, I-DEPART, B-ARRIVEE, I-ARRIVEE, O<br>Schema BIO standard pour le tagging de sequences</p>
+                    <p>B-DEPART, I-DEPART, B-ARRIVEE, I-ARRIVEE, O<br>Schéma BIO standard pour le tagging de séquences</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-cubes icon"></i> Modeles Utilises</h3>
+                    <h3><i class="fas fa-cubes icon"></i> Modèles Utilisés</h3>
                     <p>
                         &bull; spaCy custom (CNN + NER)<br>
-                        &bull; CamemBERT fine-tune (110M params)<br>
-                        &bull; Whisper-small (244M params) — dictee vocale
+                        &bull; CamemBERT fine-tuné (110M params)<br>
+                        &bull; Whisper-small (244M params) — dictée vocale
                     </p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Slide 12: Bonus Implementes -->
+    <!-- Slide 12: Bonus Implémentés -->
     <div class="slide" data-slide="11">
         <div class="content">
-            <h2 class="animate-item">Bonus Implementes</h2>
+            <h2 class="animate-item">Bonus Implémentés</h2>
             <div class="value-grid">
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-microphone icon"></i> Speech-to-Text (Whisper)</h3>
-                    <p>Reconnaissance vocale integree a l'interface web. Modele Whisper-small charge cote client (WebGPU/WASM). Maintenez Espace pour dicter.</p>
+                    <p>Reconnaissance vocale intégrée à l'interface web. Modèle Whisper-small chargé côté client (WebGPU/WASM). Maintenez Espace pour dicter.</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-map-signs icon"></i> Arrets Intermediaires (VIA)</h3>
-                    <p>Support des etapes : "De Paris a Lyon en passant par Dijon". Detection NER etendue avec label B-VIA/I-VIA.</p>
+                    <h3><i class="fas fa-map-signs icon"></i> Arrêts Intermédiaires (VIA)</h3>
+                    <p>Support des étapes : « De Paris à Lyon en passant par Dijon ». Détection NER étendue avec label B-VIA/I-VIA.</p>
                 </div>
                 <div class="value-card animate-item">
                     <h3><i class="fas fa-keyboard icon"></i> Correction Orthographique</h3>
-                    <p>Fuzzy matching avec rapidfuzz pour tolerer les fautes : "Marseile" &rarr; "Marseille", "Bordeau" &rarr; "Bordeaux".</p>
+                    <p>Fuzzy matching avec rapidfuzz pour tolérer les fautes : « Marseile » &rarr; « Marseille », « Bordeau » &rarr; « Bordeaux ».</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-chart-bar icon"></i> Benchmark Multi-Modeles</h3>
-                    <p>Comparaison Baseline vs spaCy vs CamemBERT avec metriques detaillees (F1, Precision, Recall, Exact Match).</p>
+                    <h3><i class="fas fa-chart-bar icon"></i> Benchmark Multi-Modèles</h3>
+                    <p>Comparaison Baseline vs spaCy vs CamemBERT avec métriques détaillées (F1, Precision, Recall, Exact Match).</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Slide 13: Demo -->
+    <!-- Slide 13: Démo -->
     <div class="slide demo-slide" data-slide="12">
         <div class="content">
             <h1 class="animate-item"><i class="fas fa-terminal" style="color: #FFFFFF;"></i></h1>
-            <h2 class="animate-item" style="color: #FFFFFF; font-size: 3.5rem;">Demo</h2>
-            <p class="animate-item">Passons a la demonstration</p>
+            <h2 class="animate-item" style="color: #FFFFFF; font-size: 3.5rem;">Démo</h2>
+            <p class="animate-item">Passons à la démonstration</p>
             <div class="code-block animate-item" style="max-width: 700px; margin: 30px auto 0;">
                 <span class="comment"># Lancer l'interface web</span><br>
                 <span class="keyword">$</span> uv run uvicorn src.web.app:app --reload<br><br>
