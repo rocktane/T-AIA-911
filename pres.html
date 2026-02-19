@@ -670,8 +670,58 @@
         </div>
     </div>
 
-    <!-- Slide 6: Modeles NLP -->
+    <!-- Slide 6: Modele spaCy -->
     <div class="slide" data-slide="5">
+        <div class="content">
+            <h2 class="animate-item">Modele spaCy — Architecture & Entrainement</h2>
+            <div class="value-grid">
+                <div class="value-card animate-item">
+                    <h3><i class="fas fa-font icon"></i> Tokenisation</h3>
+                    <p><strong>spacy.Tokenizer</strong> (basee sur des regles)<br>Decoupe par espaces, ponctuation, prefixes/suffixes<br>Chaque mot = 1 token (pas de sous-mots)<br>Ex : "Saint-Etienne" &rarr; ["Saint", "-", "Etienne"]</p>
+                </div>
+                <div class="value-card animate-item">
+                    <h3><i class="fas fa-layer-group icon"></i> Embedding (Tok2Vec)</h3>
+                    <p><strong>MultiHashEmbed</strong> — chaque token &rarr; vecteur 96 dims<br>Attributs : NORM, PREFIX, SUFFIX, SHAPE<br>Puis <strong>CNN 1D</strong> (4 couches) qui enrichit chaque<br>vecteur avec le contexte des mots voisins</p>
+                </div>
+                <div class="value-card animate-item">
+                    <h3><i class="fas fa-sitemap icon"></i> Classification (NER)</h3>
+                    <p><strong>TransitionBasedParser</strong> — curseur mot par mot<br>A chaque token, decide : entite ou pas (shift/reduce)<br>Couche cachee de 64 unites<br>Classification sequentielle (pas en une seule passe)</p>
+                </div>
+                <div class="value-card animate-item">
+                    <h3><i class="fas fa-sliders-h icon"></i> Entrainement</h3>
+                    <p><strong>Adam</strong> — lr=5e-5 (warmup lineaire 250 steps)<br>Dropout : 0.1, L2 : 0.01, Grad clip : 1.0<br>5000 steps, eval tous les 200 steps<br>F1 final : <strong>95.57%</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: Modele CamemBERT -->
+    <div class="slide" data-slide="6">
+        <div class="content">
+            <h2 class="animate-item">Modele CamemBERT — Architecture & Entrainement</h2>
+            <div class="value-grid">
+                <div class="value-card animate-item">
+                    <h3><i class="fas fa-font icon"></i> SentencePiece (Tokenizer)</h3>
+                    <p>Decoupe en <strong>sous-mots</strong> (subword units)<br>Vocabulaire : 32 000 tokens<br>Gere mots rares, accents, apostrophes<br>Ex : "Saint-Etienne" &rarr; ["Saint", "-", "Et", "ienne"]</p>
+                </div>
+                <div class="value-card animate-item">
+                    <h3><i class="fas fa-layer-group icon"></i> Embedding + Encoder</h3>
+                    <p><strong>Embedding</strong> : chaque token &rarr; vecteur 768 dims<br><strong>Encoder</strong> : 12 couches Transformer<br>~110M parametres</p>
+                </div>
+                <div class="value-card animate-item">
+                    <h3><i class="fas fa-graduation-cap icon"></i> Transfer Learning</h3>
+                    <p><strong>Pre-entrainement</strong> : MLM sur 138 Go de francais<br>Le modele connait deja la langue francaise<br><strong>Classification Head</strong> : couche Linear(768 &rarr; 7)<br>7 labels BIO : O, B/I-DEPART, B/I-ARRIVEE, B/I-VIA</p>
+                </div>
+                <div class="value-card animate-item">
+                    <h3><i class="fas fa-sliders-h icon"></i> Entrainement</h3>
+                    <p><strong>AdamW</strong> — lr=5e-5, warmup=10%<br>Batch : 16, Weight decay : 0.01<br>Early stopping (patience=3)<br>F1 macro final : <strong>99.67%</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: Comparaison des Modeles NLP -->
+    <div class="slide" data-slide="7">
         <div class="content">
             <h2 class="animate-item">Comparaison des Modeles NLP</h2>
             <table class="metrics-table animate-item">
@@ -716,15 +766,15 @@
                     <p>10,000 phrases annotees generees automatiquement (8000 train / 2000 test) avec templates variees</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-cogs icon"></i> Entrainement</h3>
-                    <p>spaCy : 5000 steps | CamemBERT : 5 epochs, batch_size=16, lr=5e-5, early stopping</p>
+                    <h3><i class="fas fa-tags icon"></i> Schema BIO</h3>
+                    <p>Labels : B-DEPART, I-DEPART, B-ARRIVEE, I-ARRIVEE, B-VIA, I-VIA, O. Tagging par token pour chaque mot de la phrase.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Slide 7: Cas Difficiles -->
-    <div class="slide" data-slide="6">
+    <!-- Slide 9: Cas Difficiles -->
+    <div class="slide" data-slide="8">
         <div class="content">
             <h2 class="animate-item">Gestion des Cas Difficiles</h2>
             <div class="advantage-grid">
@@ -768,8 +818,9 @@
         </div>
     </div>
 
-    <!-- Slide 8: Resolution Ville-Gare & Pathfinding -->
-    <div class="slide" data-slide="7">
+    <!-- Slide 10: Resolution Ville-Gare & Pathfinding -->
+    <div class="slide" data-slide="9">
+
         <div class="content">
             <h2 class="animate-item">Resolution Ville &rarr; Gare & Pathfinding</h2>
             <div class="value-grid">
@@ -793,8 +844,8 @@
         </div>
     </div>
 
-    <!-- Slide 9: Chiffres Cles -->
-    <div class="slide" data-slide="8">
+    <!-- Slide 11: Chiffres Cles -->
+    <div class="slide" data-slide="10">
         <div class="content">
             <h2 class="animate-item">Chiffres Cles</h2>
             <div class="metrics-grid">
@@ -821,15 +872,19 @@
                     <p>B-DEPART, I-DEPART, B-ARRIVEE, I-ARRIVEE, O<br>Schema BIO standard pour le tagging de sequences</p>
                 </div>
                 <div class="value-card animate-item">
-                    <h3><i class="fas fa-chart-line icon"></i> Performance</h3>
-                    <p>Eval loss: 0.0099 | Precision: 99.82%<br>Early stopping avec patience=3</p>
+                    <h3><i class="fas fa-cubes icon"></i> Modeles Utilises</h3>
+                    <p>
+                        &bull; spaCy custom (CNN + NER)<br>
+                        &bull; CamemBERT fine-tune (110M params)<br>
+                        &bull; Whisper-small (244M params) — dictee vocale
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Slide 10: Bonus Implementes -->
-    <div class="slide" data-slide="9">
+    <!-- Slide 12: Bonus Implementes -->
+    <div class="slide" data-slide="11">
         <div class="content">
             <h2 class="animate-item">Bonus Implementes</h2>
             <div class="value-grid">
@@ -853,8 +908,8 @@
         </div>
     </div>
 
-    <!-- Slide 11: Demo -->
-    <div class="slide demo-slide" data-slide="10">
+    <!-- Slide 13: Demo -->
+    <div class="slide demo-slide" data-slide="12">
         <div class="content">
             <h1 class="animate-item"><i class="fas fa-terminal" style="color: #FFFFFF;"></i></h1>
             <h2 class="animate-item" style="color: #FFFFFF; font-size: 3.5rem;">Demo</h2>
@@ -881,6 +936,8 @@
         <span class="indicator" onclick="goToSlide(8)"></span>
         <span class="indicator" onclick="goToSlide(9)"></span>
         <span class="indicator" onclick="goToSlide(10)"></span>
+        <span class="indicator" onclick="goToSlide(11)"></span>
+        <span class="indicator" onclick="goToSlide(12)"></span>
     </div>
 
     <script>
