@@ -771,6 +771,30 @@
             justify-content: flex-start;
             padding-top: 40px;
         }
+
+        /* Map section */
+        .map-section {
+            width: 100%;
+            margin-top: 24px;
+            border: 1px solid #000;
+        }
+        .map-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid #000;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+        }
+        .map-iframe {
+            width: 100%;
+            height: 420px;
+            border: none;
+            display: block;
+        }
     </style>
 </head>
 <body class="centered model-loading">
@@ -835,6 +859,20 @@
 
         <!-- Results -->
         <div id="results-area"></div>
+
+        <!-- Map section -->
+        <div class="map-section" id="map-section">
+            <div class="map-header">
+                <span>Carte du réseau ferroviaire</span>
+                <span id="map-route-label"></span>
+            </div>
+            <iframe
+                id="map-iframe"
+                class="map-iframe"
+                src="/api/map"
+                title="Carte SNCF"
+            ></iframe>
+        </div>
     </div>
 
     <!-- Voice loading indicator -->
@@ -1325,6 +1363,33 @@
 
             loading.classList.remove('visible');
             updateDisplay();
+            updateMap();
+        }
+
+        // Update the Folium map iframe based on the current result
+        function updateMap() {
+            const mapIframe = document.getElementById('map-iframe');
+            const mapLabel = document.getElementById('map-route-label');
+            if (!mapIframe) return;
+
+            // Pick the primary result (spaCy or current model)
+            const result = state.cache[state.currentModel === 'compare' ? 'spacy' : state.currentModel];
+
+            if (result && result.is_valid && result.route && result.route.length >= 2) {
+                const routeParam = encodeURIComponent(result.route.join(','));
+                const depParam = encodeURIComponent(result.departure_station || '');
+                const arrParam = encodeURIComponent(result.arrival_station || '');
+                mapIframe.src = `/api/map?route=${routeParam}&dep_station=${depParam}&arr_station=${arrParam}`;
+                if (result.departure && result.arrival) {
+                    mapLabel.textContent = `${result.departure} → ${result.arrival}`;
+                } else {
+                    mapLabel.textContent = '';
+                }
+            } else {
+                // Reset to base map
+                mapIframe.src = '/api/map';
+                mapLabel.textContent = '';
+            }
         }
 
         // Tab click handler

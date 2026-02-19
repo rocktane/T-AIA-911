@@ -5,6 +5,7 @@ Minimal, performance-focused interface with multi-model support.
 """
 
 import csv
+import folium
 from pathlib import Path
 from typing import Literal
 
@@ -576,6 +577,92 @@ def process_sentence(sentence: str, model: str = "spacy") -> QueryResponse:
         arrival_detection=arr_detection,
         highlighted_sentence=highlighted,
     )
+
+
+@app.get("/api/map", response_class=HTMLResponse)
+async def api_map(
+    request: Request,
+    route: str | None = None,
+    dep_station: str | None = None,
+    arr_station: str | None = None,
+) -> HTMLResponse:
+    """
+    Generate a Folium interactive map.
+
+    - Without params: shows all SNCF stations as small grey dots over France.
+    - With `route` (comma-separated station names), `dep_station`, `arr_station`:
+      draws a blue polyline and coloured markers for the route.
+    """
+    # Centre on France
+    fmap = folium.Map(
+        location=[46.6, 2.5],
+        zoom_start=6,
+        tiles="CartoDB positron",
+    )
+
+    # Helper: look up station coordinates by name
+    station_coords: dict[str, tuple[float, float]] = {}
+    if resolver and resolver.station_finder.stations:
+        for s in resolver.station_finder.stations:
+            station_coords[s.name] = (s.lat, s.lon)
+
+    # Draw all stations as tiny semi-transparent dots
+    if station_coords:
+        for name, (lat, lon) in station_coords.items():
+            folium.CircleMarker(
+                location=[lat, lon],
+                radius=2,
+                color="#9E9E9E",
+                fill=True,
+                fill_color="#9E9E9E",
+                fill_opacity=0.4,
+                weight=0,
+                tooltip=name,
+            ).add_to(fmap)
+
+    # Draw the route if provided
+    if route:
+        station_names = [s.strip() for s in route.split(",") if s.strip()]
+        route_coords: list[tuple[float, float]] = []
+
+        for name in station_names:
+            coords = station_coords.get(name)
+            if coords:
+                route_coords.append(coords)
+
+        if len(route_coords) >= 2:
+            # Blue route polyline
+            folium.PolyLine(
+                locations=route_coords,
+                color="#1565C0",
+                weight=4,
+                opacity=0.85,
+            ).add_to(fmap)
+
+            # Markers for each station in the route
+            for i, (name, coords) in enumerate(zip(station_names, route_coords)):
+                if name == dep_station:
+                    color = "green"
+                    icon = "train"
+                elif name == arr_station:
+                    color = "red"
+                    icon = "flag"
+                else:
+                    color = "orange"
+                    icon = "exchange"
+
+                folium.Marker(
+                    location=list(coords),
+                    tooltip=name,
+                    popup=name,
+                    icon=folium.Icon(color=color, icon=icon, prefix="fa"),
+                ).add_to(fmap)
+
+            # Fit the map view to the route
+            fmap.fit_bounds([[min(c[0] for c in route_coords), min(c[1] for c in route_coords)],
+                             [max(c[0] for c in route_coords), max(c[1] for c in route_coords)]])
+
+    return HTMLResponse(content=fmap._repr_html_())
 
 
 @app.get("/health")

@@ -26,7 +26,9 @@ dependencies = [
     "tqdm>=4.66.0",
     "accelerate>=0.26.0",
     "rapidfuzz>=3.14.3",
+    "folium>=0.15.0",
     "fr-core-news-sm>=3.8.0",
+    "fr-core-news-md>=3.8.0",
 ]
 
 [project.optional-dependencies]
